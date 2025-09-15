@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 project(RockCoro LANGUAGES CXX)
 
 # ============ 基本设置 ============
-set(CMAKE_CXX_COMPILER g++)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED OFF)  # 我们不启用任何 C++ 标准库特性
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -13,11 +12,6 @@ add_compile_options(
     -fno-rtti
     -fno-use-cxa-atexit
 )
-
-# 禁止链接libstdc++（仅保留C标准库）
-# -nostdlib++: 不链接C++标准库
-# -nodefaultlibs: 移除默认链接的标准库 (需要我们手动加上 libc/m/atomic 等)
-set(NOSTDLIB_FLAGS "-nostdlib++ -nodefaultlibs")
 
 # ============ 构建核心库 ============
 file(GLOB_RECURSE ROCKCORO_SOURCES
@@ -45,10 +39,11 @@ target_link_options(rockcoro PRIVATE
 )
 
 # ============ 测试与示例（可选） ============
-option(ROCKCORO_BUILD_TESTS "Build unit tests" OFF)
+option(ROCKCORO_BUILD_TESTS "Build unit tests" ON)
 option(ROCKCORO_BUILD_EXAMPLES "Build examples" OFF)
 
 if(ROCKCORO_BUILD_TESTS)
+	add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/googletest)
     add_subdirectory(tests)
 endif()
 

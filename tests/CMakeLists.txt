@@ -1,13 +1,20 @@
 # 启用测试功能
 enable_testing()
 
-# 加入 GoogleTest 子目录（路径根据你的工程布局）
-add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/googletest)
+file(GLOB_RECURSE TEST_SOURCES
+     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+)
 
 # 定义测试可执行文件
 add_executable(rockcoro_test
-    test_main.cpp
-    test_coroutine.cpp
+    ${TEST_SOURCES}
+)
+
+# Includes
+target_include_directories(rockcoro_test
+	PRIVATE
+		${CMAKE_SOURCE_DIR}/include   # 公共路径，依赖它的目标也会继承
+		${CMAKE_SOURCE_DIR}/src       # 仅当前目标使用
 )
 
 # 链接 GoogleTest + 你的库
