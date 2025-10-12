@@ -3,7 +3,7 @@ project(RockCoro LANGUAGES CXX)
 
 # ============ 基本设置 ============
 set(CMAKE_CXX_COMPILER g++)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED OFF)  # 我们不启用任何 C++ 标准库特性
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -24,7 +24,7 @@ file(GLOB_RECURSE ROCKCORO_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/**/*.cpp
 )
 
-add_library(rockcoro STATIC ${ROCKCORO_SOURCES})
+add_library(rockcoro SHARED ${ROCKCORO_SOURCES})
 
 target_include_directories(rockcoro
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
