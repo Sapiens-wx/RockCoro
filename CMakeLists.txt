@@ -15,7 +15,7 @@ add_compile_options(
 
 # ============ 构建核心库 ============
 file(GLOB_RECURSE ROCKCORO_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/**/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 
 add_library(rockcoro SHARED ${ROCKCORO_SOURCES})

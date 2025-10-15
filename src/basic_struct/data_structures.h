@@ -1,11 +1,14 @@
 #ifndef ROCKCORO_DATA_STRUCTURES_H_
 #define ROCKCORO_DATA_STRUCTURES_H_
 
-#include <stdatomic.h>
+#include <stdio.h>
+#include <atomic>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#include "log.h"
 
 namespace rockcoro{
 
@@ -103,10 +106,10 @@ struct CLDeque {
     };
 
     Segment* data[SEG_COUNT];
-    _Atomic size_t top, count;
+    std::atomic<size_t> top;
     size_t bottom; //exclusive
 
-    CLDeque() : top(0), bottom(0), count(0) {
+    CLDeque() : top(0), bottom(0) {
         for (size_t i = 0; i < SEG_COUNT; ++i)
             data[i] = nullptr;
     }
@@ -121,13 +124,14 @@ struct CLDeque {
 
     void push_back(const T& item) {
         size_t b = bottom;
+		size_t b_next=b+1;
 
         // if bottom exceeds the bound, wrap-around
-        if (b >= SEG_SIZE * SEG_COUNT)
-            b = 0;
+        if (b_next >= SEG_SIZE * SEG_COUNT)
+            b_next = 0;
         // if assert fails, then the deque is out of capacity
-        size_t t = atomic_load_explicit(&top, memory_order_acquire);
-        assert(t != b+1);
+        size_t t = top.load();
+        assert(t != b_next);
 
         size_t seg_idx = b / SEG_SIZE;
         if (!data[seg_idx]) {
@@ -135,9 +139,9 @@ struct CLDeque {
         }
 
         data[seg_idx]->buffer[offset(b)] = item;
-        atomic_thread_fence(memory_order_release);
-        atomic_fetch_add(count, 1);
-        bottom = b+1;
+        atomic_thread_fence(std::memory_order_release);
+
+        bottom = b_next;
     }
 
     /// @brief returns a pointer to an element
@@ -146,46 +150,47 @@ struct CLDeque {
         size_t old_bottom=bottom;
         size_t b = old_bottom==0?SEG_SIZE*SEG_COUNT : old_bottom;
         --b;
-        bottom = b;
-        atomic_thread_fence(memory_order_seq_cst);
-        size_t t = atomic_load_explicit(&top, memory_order_acquire);
+        size_t t = top.load();
+		size_t t_next=t+1;
+		if(t_next>=SEG_SIZE*SEG_COUNT)
+			t_next=0;
 
-        if(t!=old_bottom){ //deque is empty
-            bottom=t;
+        if(top.load()==old_bottom){ //deque is empty
             return nullptr;
         } else{ //deque is not empty
+			bottom = b;
+			atomic_thread_fence(std::memory_order_seq_cst);
             T* item = &segment(b)->buffer[offset(b)];
 
-            if (t == b) { // 最后一个元素
-                if (!atomic_compare_exchange_strong_explicit(
-                        &top, &t, t,
-                        memory_order_seq_cst, memory_order_seq_cst)) {
-                    bottom = old_bottom;
-                    return nullptr; //element is stolen by theft
-                }
+            if (top.load() == b) { // is the last element
+				if (top.compare_exchange_strong(
+						t, t_next, std::memory_order_seq_cst, std::memory_order_seq_cst)) {
+					bottom=old_bottom; //bottom has to be set after top is CASed.
+					return item; // CAS success
+				} else{
+					bottom=old_bottom;
+					return nullptr; // stolen by a theft
+				}
             }
             return item;
         }
     }
 
     const T* pop_front() {
-        size_t t = atomic_load_explicit(&top, memory_order_acquire);
+        size_t t = top.load();
         size_t b = bottom;
 
         if (t != b) { // deque is not empty
             T* item = &segment(t)->buffer[offset(t)];
             size_t t_next=t+1;
             if(t_next==SEG_SIZE*SEG_COUNT) t_next=0;
-            if (atomic_compare_exchange_strong_explicit(
-                    &top, &t, t_next,
-                    memory_order_seq_cst, memory_order_seq_cst)) {
-                return item; // 偷取成功
-            } else {
-                return nullptr; // CAS 失败
-            }
-        } else { // deque is empty
+            if (top.compare_exchange_strong(
+                    t, t_next, std::memory_order_seq_cst, std::memory_order_seq_cst))
+                return item; // CAS success
+            else
+                return nullptr; // CAS fail
+        } else // deque is empty
             return nullptr;
-        }
     }
 };
 
