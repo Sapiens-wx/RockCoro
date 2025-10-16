@@ -1,8 +1,8 @@
     .text
-    .globl cxt_swap
-    .type  cxt_swap, @function
+    .globl ctx_swap
+    .type  ctx_swap, @function
 
-cxt_swap:
+ctx_swap:
     # params : from = rdi, to = rsi
     leaq (%rsp),%rax
     movq %rax, 104(%rdi) # rsp

@@ -24,6 +24,12 @@ target_link_libraries(rockcoro_test
         gtest_main      # GoogleTest 主入口
 )
 
+# asan and coverage
+if(ROCKCORO_BUILD_DEBUG)
+	target_compile_options(rockcoro_test PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+	target_link_options(rockcoro_test PRIVATE -fsanitize=address)
+endif()
+
 # 注册测试
 include(GoogleTest)
 gtest_discover_tests(rockcoro_test)

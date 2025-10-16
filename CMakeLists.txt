@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(RockCoro LANGUAGES CXX)
+project(RockCoro LANGUAGES CXX ASM)
 
 # ============ 基本设置 ============
 set(CMAKE_CXX_STANDARD 17)
@@ -18,7 +18,7 @@ file(GLOB_RECURSE ROCKCORO_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 set(ASM_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/coroutine/context_swap.S
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/coroutine/context_swap.S
 )
 
 add_library(rockcoro SHARED 
@@ -47,6 +47,7 @@ target_link_options(rockcoro PRIVATE
 # ============ 测试与示例（可选） ============
 option(ROCKCORO_BUILD_TESTS "Build unit tests" ON)
 option(ROCKCORO_BUILD_EXAMPLES "Build examples" OFF)
+option(ROCKCORO_BUILD_DEBUG "Debug Build" ON)
 
 if(ROCKCORO_BUILD_TESTS)
 	add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/googletest)
@@ -55,6 +56,12 @@ endif()
 
 if(ROCKCORO_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(ROCKCORO_BUILD_DEBUG)
+	message("Debug build: enable ASan and coverage")
+	target_compile_options(rockcoro PRIVATE -g -fprofile-arcs -ftest-coverage -fsanitize=address)
+	target_link_options(rockcoro PRIVATE -fprofile-arcs -ftest-coverage -fsanitize=address)
 endif()
 
 # ============ 输出构建信息 ============

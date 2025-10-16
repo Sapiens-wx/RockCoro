@@ -18,7 +18,7 @@ static void coroutine_function_handler(Coroutine* coroutine, void* args){
 Context::Context(Coroutine& coroutine){
     memset(regs, 0, sizeof(regs));
     // set RIP to coroutine_function_handler
-    regs[RIP]=&coroutine_function_handler;
+    regs[RIP]=(void*)&coroutine_function_handler;
     // set the first param to &coroutine
     regs[RDI]=&coroutine;
     // set the second param to args

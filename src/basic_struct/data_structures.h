@@ -116,7 +116,7 @@ struct CLDeque {
 
     ~CLDeque() {
         for (size_t i = 0; i < SEG_COUNT; ++i)
-            if (data[i]) free(data[i]);
+            if (data[i]) delete data[i];
     }
 
     Segment* segment(size_t idx) { return data[idx / SEG_SIZE]; }

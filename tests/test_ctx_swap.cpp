@@ -3,17 +3,21 @@
 #include "coroutine/coroutine.h"
 #include "coroutine/context.h"
 
+using namespace rockcoro;
+
 INCLUDE_CTX_SWAP
 
 struct CoroParams{
     Coroutine* self;
     Coroutine* originalCoro;
+	int i;
 };
 
 static void coro1(void* args){
-    printf("this is coroutine 1\n");
     CoroParams* cp=(CoroParams*)args;
-    ctx_swap(cp->self, cp->originalCoro);
+    printf("this is coroutine 1, i=%d\n", cp->i);
+	cp->i=2;
+    ctx_swap(cp->self->ctx, cp->originalCoro->ctx);
 }
 
 TEST(ContextSwapTest, SingleFunctionTest){
@@ -23,5 +27,7 @@ TEST(ContextSwapTest, SingleFunctionTest){
     Coroutine coro(&coro1, &args);
     args.self=&coro;
     args.originalCoro=&mainCoro;
+	args.i=1;
     ctx_swap(mainCoro.ctx, coro.ctx);
+	printf("main routine, i=%d\n", args.i);
 }
