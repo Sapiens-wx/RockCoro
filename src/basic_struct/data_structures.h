@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -212,7 +213,7 @@ struct MSQueue {
     ~MSQueue() {
         for (size_t i = 0; i < SEG_COUNT; ++i)
             if (data[i]) delete data[i];
-        pthread_mutex_destroy(&mutex, nullptr);
+        pthread_mutex_destroy(&mutex);
     }
 
     Segment* segment(size_t idx) { return data[idx / SEG_SIZE]; }
@@ -220,7 +221,7 @@ struct MSQueue {
 
     void push(const T& item) {
         pthread_mutex_lock(&mutex);
-		size_t b_next=b+1;
+		size_t b_next=bottom+1;
 
         // if bottom exceeds the bound, wrap-around
         if (b_next >= SEG_SIZE * SEG_COUNT)
@@ -247,13 +248,13 @@ struct MSQueue {
         T* item = nullptr;
 
         if (top != bottom) { // deque is not empty
-            item = &segment(t)->buffer[offset(t)];
+            item = &segment(top)->buffer[offset(top)];
             top=top+1;
             if(top==SEG_SIZE*SEG_COUNT) top=0;
         }
         pthread_mutex_unlock(&mutex);
         return item;
     }   
-}
+};
 
 }

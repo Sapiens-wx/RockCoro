@@ -6,6 +6,8 @@
 
 namespace rockcoro{
 
+std::atomic<int> _tid{0};
+
 // helper function: get thread-local log file path
 static void get_thread_log_path(char* buf, size_t buf_size) {
 		int tmp=_tid.fetch_add(1);
@@ -26,11 +28,10 @@ struct LoggerTL{
 		if(log_file)
 			fclose(log_file);
 	}
-}
+};
 
 // 每个线程独有的 FILE*
 thread_local LoggerTL logger;
-std::atomic<int> _tid{0};
 
 void logf(const char* fmt, ...) {
 	char buffer[4096];

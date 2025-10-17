@@ -111,7 +111,7 @@ TEST(MSQueueTest, MultiThreadTest){
 	// if id==0, then consider it as main thread
     auto consumer = [&](int id) {
         int val;
-        while (pop_count.load() < ITEMS_PER_PRODUCER) {
+        while (pop_count.load() < NUM_PRODUCERS*ITEMS_PER_PRODUCER) {
             const int* ptr=nullptr;
 			ptr=q.pop();
 
