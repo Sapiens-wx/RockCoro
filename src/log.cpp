@@ -1,5 +1,5 @@
-#if DEBUG
 #include "log.h"
+#if DEBUG
 
 #include <cstdio>
 #include <thread>

@@ -17,8 +17,14 @@ add_compile_options(
 file(GLOB_RECURSE ROCKCORO_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
+set(ASM_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/coroutine/context_swap.S
+)
 
-add_library(rockcoro SHARED ${ROCKCORO_SOURCES})
+add_library(rockcoro SHARED 
+    ${ROCKCORO_SOURCES}
+    ${ASM_SOURCES}
+)
 
 target_include_directories(rockcoro
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
