@@ -155,7 +155,7 @@ struct LinkedListNode{
     LinkedListNode* next;
     Coroutine* coroutine;
 
-    LinkedListNode();
+    LinkedListNode(Coroutine* coroutine);
 };
 
 struct LinkedList{

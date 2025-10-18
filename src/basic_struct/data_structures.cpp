@@ -1,7 +1,10 @@
 #include "data_structures.h"
+#include "coroutine/coroutine.h"
 
-LinkedListNode::LinkedListNode()
-    :next(nullptr), coroutine(nullptr){
+namespace rockcoro{
+
+LinkedListNode::LinkedListNode(Coroutine* coroutine)
+    :next(nullptr), coroutine(coroutine){
 }
 
 LinkedList::LinkedList()
@@ -17,11 +20,13 @@ Coroutine* LinkedList::pop_front(){
 }
 void LinkedList::push_back(Coroutine* coroutine){
     if(head==nullptr){
-        head=coroutine->node;
+        head=&coroutine->node;
         tail=head;
     } else{
-        tail->next=coroutine->node;
+        tail->next=&coroutine->node;
         tail=tail->next;
     }
     tail->next=nullptr;
+}
+
 }
