@@ -2,9 +2,10 @@
 
 namespace rockcoro{
 
-extern "C" void ctx_swap(Context* from, Context* to) asm("ctx_swap");
-
+struct Context;
 struct Coroutine;
+
+extern "C" void ctx_swap(Context* from, Context* to) asm("ctx_swap");
 
 typedef void (*CoroutineFunc)(void*);
 

@@ -5,7 +5,7 @@
 namespace rockcoro{
 
 Coroutine::Coroutine(CoroutineFunc fn, void* args)
-    :fn(fn), args(args), stack(nullptr){
+    :stack(nullptr), fn(fn), args(args){
     if(fn)
         stack=new Stack();
     ctx=new Context(*this);

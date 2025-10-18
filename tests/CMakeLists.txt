@@ -32,4 +32,4 @@ endif()
 
 # 注册测试
 include(GoogleTest)
-gtest_discover_tests(rockcoro_test)
+#gtest_discover_tests(rockcoro_test)

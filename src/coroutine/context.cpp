@@ -4,6 +4,7 @@
 #include "coroutine/stack.h"
 #include "scheduler.h"
 #include "scheduler/tl_scheduler.h"
+#include "log.h"
 
 namespace rockcoro{
 
