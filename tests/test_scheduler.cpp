@@ -58,7 +58,7 @@ void consumer(void* args)
 			param->pop_count++;
 		} else {
 		}
-		Scheduler::coroutine_yield();
+		Scheduler::inst.coroutine_yield();
 	}
 	param->completed_consumer[param->id]=1;
 	delete param;
@@ -72,7 +72,7 @@ static void producer(void* args)
 		int val = param->id * ITEMS_PER_PRODUCER + i;
 		param->q.push(val);
 		param->push_count++;
-		Scheduler::coroutine_yield();
+		Scheduler::inst.coroutine_yield();
 	}
 	param->completed_producer[param->id]=1;
 	delete param;
@@ -103,10 +103,10 @@ TEST(SchedulerTest, CoroutineTest)
 
     // 启动所有线程
     for (int i = 0; i < NUM_PRODUCERS; ++i)
-		Scheduler::coroutine_create(&producer, new Params(i, tmp_param));
+		Scheduler::inst.coroutine_create(&producer, new Params(i, tmp_param));
     for (int i = 0; i < NUM_CONSUMERS; ++i){
 		Params* p=new Params(i, tmp_param);
-		Scheduler::coroutine_create(&consumer, p);
+		Scheduler::inst.coroutine_create(&consumer, p);
 	}
 	
 	// wait for all threads to complete

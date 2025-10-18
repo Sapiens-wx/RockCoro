@@ -25,7 +25,6 @@ struct Logger{
 		if(log_file)
 			fclose(log_file);
 		pthread_mutex_destroy(&mutex_log);
-		printf("logger destructor\n");
 	}
 };
 

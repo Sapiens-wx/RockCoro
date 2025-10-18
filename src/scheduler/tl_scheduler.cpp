@@ -4,7 +4,7 @@
 
 namespace rockcoro{
 
-thread_local TLScheduler TLScheduler tl_scheduler;
+thread_local TLScheduler TLScheduler::inst;
 
 TLScheduler::TLScheduler()
     : pending_push(nullptr), pending_destroy(nullptr){

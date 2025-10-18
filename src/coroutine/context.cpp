@@ -16,10 +16,10 @@ static void coroutine_function_handler(Coroutine* coroutine, void* args){
         coroutine->fn(args);
     }
     // adds the coroutine to the pending_destroy
-    TLScheduler& tl_scheduler=TLScheduler::get();
+    TLScheduler& tl_scheduler=TLScheduler::inst;
     tl_scheduler.pending_destroy=coroutine;
     // return to the main coroutine (event loop)
-    Scheduler::coroutine_swap(tl_scheduler.main_coroutine);
+    Scheduler::inst.coroutine_swap(tl_scheduler.main_coroutine);
 }
 
 Context::Context(Coroutine& coroutine){

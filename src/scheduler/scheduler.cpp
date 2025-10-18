@@ -10,19 +10,19 @@ Scheduler Scheduler::inst;
 
 static void* event_loop(void*){
     while(true){
-        Coroutine* job=inst.job_pop();
-        if(job==nullptr){
-            logf("job should not be null");
-            break;
-        }
-        inst.coroutine_swap(job);
+        Coroutine* job=Scheduler::inst.job_pop();
+		while(job==nullptr){
+			job=Scheduler::inst.job_pop();
+		}
+        Scheduler::inst.coroutine_swap(job);
         TLScheduler::inst.flush_pending_push();
         TLScheduler::inst.flush_pending_destroy();
     }
+	return nullptr;
 }
 
 Scheduler::Scheduler(){
-    pthread_spinlock_init(&spin_job_queue, nullptr);
+    pthread_spin_init(&spin_job_queue, 0);
     sem_init(&sem_job_queue, 0, 0);
     for(int i=0;i<SCHEDULER_NUM_WORKERS;++i){
         pthread_create(&workers[i], nullptr, &event_loop, nullptr);
@@ -31,15 +31,13 @@ Scheduler::Scheduler(){
 }
 
 Scheduler::~Scheduler(){
-    pthread_spinlock_destroy(&spin_job_queue);
+    pthread_spin_destroy(&spin_job_queue);
     sem_destroy(&sem_job_queue);
-    pthread_cond_destroy(&cond_job_queue);
 }
 
 void Scheduler::job_push(Coroutine* coroutine){
     pthread_spin_lock(&spin_job_queue);
     job_queue.push_back(coroutine);
-    pthread_cond_signal(&cond_job_queue);
     pthread_spin_unlock(&spin_job_queue);
     sem_post(&sem_job_queue);
 }
