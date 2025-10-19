@@ -5,7 +5,7 @@
 
 namespace rockcoro{
 
-#define SCHEDULER_NUM_WORKERS 6
+#define SCHEDULER_NUM_WORKERS 2
 struct Coroutine;
 
 typedef void (*CoroutineFunc)(void*);
@@ -24,8 +24,6 @@ struct Scheduler{
     /// @brief gets the scheduler instance
     void job_push(Coroutine* coroutine);
     Coroutine* job_pop();
-	// pops a job without locking mutex_job_queue. Caller should handle mutex_job_queue.
-    Coroutine* job_pop_no_lock();
 
     // creates a new coroutine
     void coroutine_create(CoroutineFunc fn, void* args);

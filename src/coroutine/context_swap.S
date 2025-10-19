@@ -19,10 +19,10 @@ ctx_first_swap:
 
     movq 32(%rsi), %rbp
     movq 56(%rsi), %rsp
-    movq (%rsp), rdi # load rdi
-    movq 8(%rsp), rsi # load rsi
+    movq (%rsp), %rdi # load rdi
 	leaq 8(%rsp), %rsp # leave space for the next pushq command
 	pushq 40(%rsi) # set return address to rip
+    movq 8(%rsp), %rsi # load rsi
 	ret
 
     .globl ctx_swap

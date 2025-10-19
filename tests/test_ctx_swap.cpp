@@ -15,7 +15,7 @@ static void coro1(void* args){
     CoroParams* cp=(CoroParams*)args;
     printf("this is coroutine 1, i=%d\n", cp->i);
 	cp->i=2;
-    ctx_swap(cp->self->ctx, cp->originalCoro->ctx);
+    ctx_last_swap(cp->self->ctx, cp->originalCoro->ctx);
 }
 
 TEST(ContextSwapTest, SingleFunctionTest){
@@ -26,6 +26,7 @@ TEST(ContextSwapTest, SingleFunctionTest){
     args.self=&coro;
     args.originalCoro=&mainCoro;
 	args.i=1;
-    ctx_swap(mainCoro.ctx, coro.ctx);
+	logf("coro=%p, fn=%p\n", &coro, &coro1);
+    ctx_first_swap(mainCoro.ctx, coro.ctx);
 	printf("main routine, i=%d\n", args.i);
 }

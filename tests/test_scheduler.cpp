@@ -105,6 +105,7 @@ TEST(SchedulerTest, CoroutineTest)
     for (int i = 0; i < NUM_PRODUCERS; ++i)
 		Scheduler::inst.coroutine_create(&producer, new Params(i, tmp_param));
     for (int i = 0; i < NUM_CONSUMERS; ++i){
+		logf("consumer %d\n", i);
 		Params* p=new Params(i, tmp_param);
 		Scheduler::inst.coroutine_create(&consumer, p);
 	}

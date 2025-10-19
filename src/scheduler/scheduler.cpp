@@ -11,6 +11,10 @@ Scheduler Scheduler::inst;
 static void* event_loop(void*){
     while(true){
         Coroutine* job=Scheduler::inst.job_pop();
+		if(job==nullptr){
+			logf("get job=nullptr\n");
+			break;
+		}
 		while(job==nullptr){
 			job=Scheduler::inst.job_pop();
 		}
@@ -48,9 +52,6 @@ Coroutine* Scheduler::job_pop(){
     pthread_spin_unlock(&spin_job_queue);
     return ret;
 }
-Coroutine* Scheduler::job_pop_no_lock(){
-    return job_queue.pop_front();
-}
 void Scheduler::coroutine_create(CoroutineFunc fn, void* args){
     Coroutine* coroutine=new Coroutine(fn, args);
     job_push(coroutine);
@@ -72,8 +73,10 @@ void Scheduler::coroutine_swap(Coroutine* coroutine){
     tl_scheduler.cur_coroutine=coroutine;
     if(coroutine->started)
         ctx_swap(old_coroutine->ctx, coroutine->ctx);
-    else
+    else{
+		coroutine->started=true;
         ctx_first_swap(old_coroutine->ctx, coroutine->ctx);
+	}
 }
 
 }
