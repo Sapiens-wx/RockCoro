@@ -5,13 +5,15 @@
 namespace rockcoro{
 
 Coroutine::Coroutine(CoroutineFunc fn, void* args)
-    :fn(fn), args(args){
-    stack=new Stack();
+    :fn(fn), args(args), stack(nullptr){
+    if(fn)
+        stack=new Stack();
     ctx=new Context(*this);
 }
 
 Coroutine::~Coroutine(){
-    delete stack;
+    if(stack)
+        delete stack;
     delete ctx;
 }
 

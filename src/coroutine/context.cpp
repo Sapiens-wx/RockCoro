@@ -16,6 +16,10 @@ static void coroutine_function_handler(Coroutine* coroutine, void* args){
 }
 
 Context::Context(Coroutine& coroutine){
+    // if coroutine.fn==nullptr, then assumes this is the main coroutine.
+    // So no need to initialize the register values
+    if(coroutine.fn==nullptr)
+        return;
     memset(regs, 0, sizeof(regs));
     // set RIP to coroutine_function_handler
     regs[RIP]=(void*)&coroutine_function_handler;
