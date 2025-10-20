@@ -5,8 +5,6 @@
 
 using namespace rockcoro;
 
-INCLUDE_CTX_SWAP
-
 struct CoroParams{
     Coroutine* self;
     Coroutine* originalCoro;

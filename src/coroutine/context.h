@@ -2,11 +2,7 @@
 
 namespace rockcoro{
 
-//if you want to use ctx_swap in a cpp file, add "INCLUDE_CTX_SWAP" on the top of the cpp file
-#define INCLUDE_CTX_SWAP \
-extern "C" {\
-extern void ctx_swap(Context* from, Context* to) asm("ctx_swap");\
-};
+extern "C" void ctx_swap(Context* from, Context* to) asm("ctx_swap");
 
 struct Coroutine;
 
