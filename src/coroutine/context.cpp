@@ -2,6 +2,8 @@
 #include "context.h"
 #include "coroutine/coroutine.h"
 #include "coroutine/stack.h"
+#include "scheduler.h"
+#include "scheduler/tl_scheduler.h"
 
 namespace rockcoro{
 
@@ -12,7 +14,11 @@ static void coroutine_function_handler(Coroutine* coroutine, void* args){
     if(coroutine->fn){
         coroutine->fn(args);
     }
-    //TODO: 
+    // adds the coroutine to the pending_destroy
+    TLScheduler& tl_scheduler=TLScheduler::get();
+    tl_scheduler.pending_destroy=coroutine;
+    // return to the main coroutine (event loop)
+    Scheduler::coroutine_swap(tl_scheduler.main_coroutine);
 }
 
 Context::Context(Coroutine& coroutine){
