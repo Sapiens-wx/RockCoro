@@ -5,6 +5,7 @@ namespace rockcoro{
 struct Coroutine;
 
 struct TLScheduler{
+    static thread_local TLScheduler inst;
     // current coroutine this thread is running on
     Coroutine* cur_coroutine;
     // the event loop.
@@ -16,8 +17,6 @@ struct TLScheduler{
 
     TLScheduler();
     ~TLScheduler();
-    /// @brief gets the thread-local TLScheduler instance
-    static TLScheduler& get();
     // push pending_push to the job queue if pending_push!=null and set it to null
     void flush_pending_push();
     // destroy pending_destroy if pending_destroy!=null and set it to null

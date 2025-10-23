@@ -4,7 +4,7 @@
 
 namespace rockcoro{
 
-thread_local TLScheduler tl_scheduler;
+thread_local TLScheduler TLScheduler tl_scheduler;
 
 TLScheduler::TLScheduler()
     : pending_push(nullptr), pending_destroy(nullptr){
@@ -18,13 +18,9 @@ TLScheduler::~TLScheduler(){
     delete main_coroutine;
 }
 
-TLScheduler& TLScheduler::get(){
-    return tl_scheduler;
-}
-
 void TLScheduler::flush_pending_push(){
     if(pending_push){
-        Scheduler::job_push(pending_push);
+        Scheduler::inst.job_push(pending_push);
         pending_push=nullptr;
     }
 }
