@@ -1,4 +1,5 @@
 #pragma once
+#include "basic_struct/data_structures.h"
 
 namespace rockcoro{
 
@@ -18,6 +19,9 @@ struct Coroutine{
     CoroutineFunc fn;
     // args the parameters of fn
     void* args;
+
+    // the node used when this coroutine is pushed or poped from a LinkedList
+    LinkedListNode node;
 
     // @param fn the function that this coroutine runs on
     // @param args the parameters of fn

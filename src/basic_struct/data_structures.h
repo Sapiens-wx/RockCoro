@@ -11,6 +11,8 @@
 
 namespace rockcoro{
 
+struct Coroutine;
+
 struct CoroError{
     const char* msg;
     CoroError() = default;
@@ -147,6 +149,23 @@ struct Queue {
         }
         return item;
     }   
+};
+
+struct LinkedListNode{
+    LinkedListNode* next;
+    Coroutine* coroutine;
+
+    LinkedListNode();
+};
+
+struct LinkedList{
+    LinkedListNode* head;
+    LinkedListNode* tail;
+
+    LinkedList();
+    // pop an element from head. returns nullptr if empty
+    Coroutine* pop_front();
+    void push_back(Coroutine* coroutine);
 };
 
 /// @brief Chase-Lev Deque
