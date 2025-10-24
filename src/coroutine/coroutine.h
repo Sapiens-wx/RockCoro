@@ -23,6 +23,10 @@ struct Coroutine{
     // the node used when this coroutine is pushed or poped from a LinkedList
     LinkedListNode node;
 
+    // has the coroutine started?
+    // if not, ctx_first_swap will be used instead of ctx_swap.
+    bool started;
+
     // @param fn the function that this coroutine runs on
     // @param args the parameters of fn
     Coroutine(CoroutineFunc fn, void* args);

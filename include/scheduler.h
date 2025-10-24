@@ -33,6 +33,9 @@ struct Scheduler{
     void coroutine_yield();
     // swaps coroutine with TLScheduler::cur_coroutine. Does nothing except for swapping coroutine
     void coroutine_swap(Coroutine* coroutine);
+    // swaps coroutine with TLScheduler::cur_coroutine.
+    // coroutine must be returning (i.e., the coroutine will not be run again)
+    void coroutine_last_swap(Coroutine* coroutine);
 };
 
 }
