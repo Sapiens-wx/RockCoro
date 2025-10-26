@@ -26,7 +26,7 @@ namespace rockcoro
 
         TimeWheelLinkedList();
         // pop an element from head. returns nullptr if empty
-        Coroutine *pop_front();
+        TimeWheelLinkedListNode *pop_front();
         void push_back(Coroutine *coroutine);
     };
 
@@ -43,7 +43,6 @@ namespace rockcoro
         // the interval in ms between two slots
         int intervalMS;
 
-        TimeWheel();
         void tick();
         void add_event(Coroutine *coroutine);
     };
@@ -67,7 +66,7 @@ namespace rockcoro
 
     private:
         void push_pending_event(Coroutine *coroutine);
-        Coroutine *pop_pending_event();
+        TimeWheelLinkedListNode *pop_pending_event();
         // actually adds the coroutine to the timewheel. expire time will be stored in coroutine
         void internal_add_event(Coroutine *coroutine);
     };

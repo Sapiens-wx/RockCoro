@@ -1,12 +1,11 @@
 #pragma once
 #include "basic_struct/data_structures.h"
 #include "timer/timewheel.h"
+#include "coroutine/stack.h"
+#include "coroutine/context.h"
 
 namespace rockcoro
 {
-
-    struct Stack;
-    struct CoroutineContext;
 
     typedef void (*CoroutineFunc)(void *);
 

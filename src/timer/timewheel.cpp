@@ -3,6 +3,7 @@
 #include <errno.h>
 #include "coroutine/coroutine.h"
 #include "scheduler.h"
+#include "log.h"
 
 namespace rockcoro
 {
@@ -18,7 +19,7 @@ namespace rockcoro
     {
     }
     // pop an element from head. returns nullptr if empty
-    Coroutine *TimeWheelLinkedList::pop_front()
+    TimeWheelLinkedListNode *TimeWheelLinkedList::pop_front()
     {
         if (head == nullptr)
         {
@@ -30,7 +31,7 @@ namespace rockcoro
         {
             tail = nullptr;
         }
-        return ret->coroutine;
+        return ret;
     }
     void TimeWheelLinkedList::push_back(Coroutine *coroutine)
     {
@@ -117,11 +118,11 @@ namespace rockcoro
             // add pending events
             while (TimeWheelLinkedListNode *pending_event = TimerManager::inst.pop_pending_event())
             {
-                internal_add_event(pending_event->coroutine);
+                TimerManager::inst.internal_add_event(pending_event->coroutine);
             }
 
             // tick timewheel
-            lowest_timewheel->tick();
+            TimerManager::inst.lowest_timewheel->tick();
 
             // calculate next tick time
             next.tv_nsec += TIMEWHEEL_INTERVAL_MS * 1000000LL;
@@ -168,10 +169,10 @@ namespace rockcoro
         pthread_spin_unlock(&spin_pending_events);
     }
 
-    Coroutine *TimerManager::pop_pending_event()
+    TimeWheelLinkedListNode *TimerManager::pop_pending_event()
     {
         pthread_spin_lock(&spin_pending_events);
-        Coroutine *ret = pending_events.pop_front();
+        TimeWheelLinkedListNode *ret = pending_events.pop_front();
         pthread_spin_unlock(&spin_pending_events);
         return ret;
     }

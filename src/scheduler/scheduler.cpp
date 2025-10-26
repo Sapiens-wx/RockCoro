@@ -42,7 +42,7 @@ namespace rockcoro
             pthread_detach(workers[i]);
         }
         // timewheel eventloop
-        pthread_create(&timewheel_worker, nullptr, &Timer::event_loop, nullptr);
+        pthread_create(&timewheel_worker, nullptr, &TimerManager::event_loop, nullptr);
         pthread_detach(timewheel_worker);
     }
 
@@ -81,7 +81,6 @@ namespace rockcoro
     void Scheduler::coroutine_exit_swap(Coroutine *coroutine)
     {
         TLScheduler &tl_scheduler = TLScheduler::inst;
-        Coroutine *old_coroutine = tl_scheduler.cur_coroutine;
         tl_scheduler.cur_coroutine = coroutine;
         ctx_exit_swap(coroutine);
     }

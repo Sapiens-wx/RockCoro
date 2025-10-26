@@ -18,7 +18,6 @@ namespace rockcoro
         // return address is stored in *rsp
         void *r12 = nullptr, *r13 = nullptr, *r14 = nullptr, *r15 = nullptr, *rbp = nullptr, *rsp = nullptr, *rbx = nullptr;
 
-        CoroutineContext();
         // called when the coroutine is swapped for the first time
         void init(Coroutine &coroutine);
     };

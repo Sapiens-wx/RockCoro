@@ -11,6 +11,7 @@ namespace rockcoro
     TLScheduler::TLScheduler()
     {
         main_coroutine = new Coroutine(nullptr, nullptr);
+		main_coroutine->started=true;
         cur_coroutine = main_coroutine;
     }
 

@@ -1,6 +1,6 @@
     .text
-    .globl ctx_first_swap
-    .type  ctx_first_swap, @function
+    .globl ctx_entry_swap
+    .type  ctx_entry_swap, @function
 
 # void ctx_entry_swap(Coroutine* from, Coroutine* to) asm("ctx_first_swap");
 # normal context swap function. swaps and saves r12-15, rbx, rbp, rsp, rip
@@ -19,7 +19,7 @@ ctx_entry_swap:
     movq 8(%rsp), %rdi # load rdi
     movq 16(%rsp), %rsi # load rsi
     movq (%rsp), %rax # set return address
-	jmp %rax
+	jmp *%rax
 
     .globl ctx_swap
     .type  ctx_swap, @function
@@ -44,10 +44,10 @@ ctx_swap:
     movq 24(%rsi), %r15
     movq 48(%rsi), %rbx
     movq (%rsp), %rax # set return address
-	jmp %rax
+	jmp *%rax
 
-    .globl ctx_last_swap
-    .type  ctx_last_swap, @function
+    .globl ctx_exit_swap
+    .type  ctx_exit_swap, @function
 # void ctx_exit_swap(Coroutine* to) asm("ctx_last_swap");
 # swaps the context but does not save the context
 # used when a coroutine returns
@@ -60,4 +60,4 @@ ctx_exit_swap:
     movq 24(%rdi), %r15
     movq 48(%rdi), %rbx
     movq (%rsp), %rax # set return address
-	jmp %rax
+	jmp *%rax

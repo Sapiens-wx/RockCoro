@@ -17,7 +17,7 @@ struct ParamTestSleep
     int sleep_ms;
     int actual_sleep_ms;
     bool is_finished;
-}
+};
 
 void
 test_sleep(void *args)
@@ -28,10 +28,10 @@ test_sleep(void *args)
     auto start = steady_clock::now();
 
     // 调用待测函数
-    Scheduler::inst.coroutine_sleep(param->sleep_ms)
+    Scheduler::inst.coroutine_sleep(param->sleep_ms);
 
-        // 记录结束时间
-        auto end = steady_clock::now();
+	// 记录结束时间
+	auto end = steady_clock::now();
 
     // 计算实际耗时
     auto elapsed = duration_cast<milliseconds>(end - start).count();
