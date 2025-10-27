@@ -19,7 +19,7 @@ static void coroutine_function_handler(Coroutine* coroutine, void* args){
     TLScheduler& tl_scheduler=TLScheduler::inst;
     tl_scheduler.pending_destroy=coroutine;
     // return to the main coroutine (event loop)
-    Scheduler::inst.coroutine_last_swap(tl_scheduler.main_coroutine);
+    Scheduler::inst.coroutine_exit_swap(tl_scheduler.main_coroutine);
 }
 
 Context::Context(Coroutine& coroutine){
@@ -30,18 +30,18 @@ Context::Context(Coroutine& coroutine){
     memset(regs, 0, sizeof(regs));
     // pointer to stack base. leave three pointer space for:
     // ---stack base---
+    //  return address
     //   first param (also for return address. consider this memory block as a union{first param; return address})
     //   second param
     // ---buffer end---
-    char* sp=coroutine.stack->stack_mem->buffer+coroutine.stack->stack_mem->size-sizeof(void*)*2;
-    *(void**)(sp)=&coroutine; //first param
-    *(void**)(sp+sizeof(void*))=coroutine.args; //second param
-    // set RIP to coroutine_function_handler
-    regs[RIP]=(void*)&coroutine_function_handler;
+    char* sp=coroutine.stack->stack_mem->buffer+coroutine.stack->stack_mem->size-sizeof(void*)*3;
+    *(void**)(sp)=(void*)&coroutine_function_handler; //return address
+    *(void**)(sp+sizeof(void*))=&coroutine; //first param
+    *(void**)(sp+sizeof(void*)*2)=coroutine.args; //second param
     // sets rbp and rsp to the bottom of the stack
     // leave sizeof(void*) bytes space for setting the return address in ctx_swap
-    regs[RBP]=sp;
-    regs[RSP]=sp;
+    rsp=sp;
+    rbp=sp;
 }
 
 }

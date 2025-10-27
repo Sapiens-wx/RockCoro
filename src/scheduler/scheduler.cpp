@@ -66,11 +66,11 @@ void Scheduler::coroutine_yield(){
     tl_scheduler.pending_push=tl_scheduler.cur_coroutine;
     coroutine_swap(tl_scheduler.main_coroutine);
 }
-void Scheduler::coroutine_last_swap(Coroutine* coroutine){
+void Scheduler::coroutine_exit_swap(Coroutine* coroutine){
     TLScheduler& tl_scheduler=TLScheduler::inst;
     Coroutine* old_coroutine=tl_scheduler.cur_coroutine;
     tl_scheduler.cur_coroutine=coroutine;
-    ctx_last_swap(old_coroutine->ctx, coroutine->ctx);
+    ctx_exit_swap(coroutine->ctx);
 }
 void Scheduler::coroutine_swap(Coroutine* coroutine){
     TLScheduler& tl_scheduler=TLScheduler::inst;
@@ -80,7 +80,7 @@ void Scheduler::coroutine_swap(Coroutine* coroutine){
         ctx_swap(old_coroutine->ctx, coroutine->ctx);
     else{
 		coroutine->started=true;
-        ctx_first_swap(old_coroutine->ctx, coroutine->ctx);
+        ctx_entry_swap(old_coroutine->ctx, coroutine->ctx);
 	}
 }
 

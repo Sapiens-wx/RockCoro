@@ -34,7 +34,7 @@ struct Scheduler{
     void coroutine_swap(Coroutine* coroutine);
     // swaps coroutine with TLScheduler::cur_coroutine.
     // coroutine must be returning (i.e., the coroutine will not be run again)
-    void coroutine_last_swap(Coroutine* coroutine);
+    void coroutine_exit_swap(Coroutine* coroutine);
     // yields the coroutine and adds this coroutine to job_queue after [delayMS] ms
     void coroutine_sleep(int delayMS);
 };
