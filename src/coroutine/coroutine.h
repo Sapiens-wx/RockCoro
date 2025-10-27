@@ -1,5 +1,6 @@
 #pragma once
 #include "basic_struct/data_structures.h"
+#include "timer/timewheel.h"
 
 namespace rockcoro{
 
@@ -22,6 +23,8 @@ struct Coroutine{
 
     // the node used when this coroutine is pushed or poped from a LinkedList
     LinkedListNode node;
+    // the node used when this coroutine is added to the time wheel
+    TimeWheelLinkedListNode timewheel_node;
 
     // has the coroutine started?
     // if not, ctx_first_swap will be used instead of ctx_swap.

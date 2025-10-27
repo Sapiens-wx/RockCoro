@@ -1,6 +1,7 @@
 #include "scheduler/tl_scheduler.h"
 #include "scheduler.h"
 #include "coroutine/coroutine.h"
+#include "timer/timewheel.h"
 
 namespace rockcoro{
 
@@ -29,6 +30,13 @@ void TLScheduler::flush_pending_destroy(){
     if(pending_destroy){
         delete pending_destroy;
         pending_destroy=nullptr;
+    }
+}
+
+void TLScheduler::flush_pending_add_event(){
+    if(pending_add_event){
+        Timer::inst.add_event(pending_add_event, pending_add_event->timewheel_node.delayMS);
+        pending_add_event=nullptr;
     }
 }
 

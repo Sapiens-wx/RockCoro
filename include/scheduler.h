@@ -18,6 +18,7 @@ struct Scheduler{
     sem_t sem_job_queue;
     // workers
     pthread_t workers[SCHEDULER_NUM_WORKERS];
+    pthread_t timewheel_worker;
 
     Scheduler();
     ~Scheduler();
@@ -34,6 +35,8 @@ struct Scheduler{
     // swaps coroutine with TLScheduler::cur_coroutine.
     // coroutine must be returning (i.e., the coroutine will not be run again)
     void coroutine_last_swap(Coroutine* coroutine);
+    // yields the coroutine and adds this coroutine to job_queue after [delayMS] ms
+    void coroutine_sleep(int delayMS);
 };
 
 }

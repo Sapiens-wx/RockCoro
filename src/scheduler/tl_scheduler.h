@@ -14,6 +14,8 @@ struct TLScheduler{
     Coroutine* pending_push;
     // the coroutine that has terminated. Destroy the coroutine instance after the coroutine returns.
     Coroutine* pending_destroy;
+    // if Scheduler::coroutine_sleep is called, call Timer::add_event after the coroutine yields
+    Coroutine* pending_add_event;
 
     TLScheduler();
     ~TLScheduler();
@@ -21,6 +23,8 @@ struct TLScheduler{
     void flush_pending_push();
     // destroy pending_destroy if pending_destroy!=null and set it to null
     void flush_pending_destroy();
+    // call Timer::add_event(pending_add_event) if pending_add_event!=null and set it to null
+    void flush_pending_add_event();
 };
 
 }

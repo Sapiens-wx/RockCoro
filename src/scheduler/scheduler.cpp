@@ -3,6 +3,7 @@
 #include "coroutine/context.h"
 #include "coroutine/coroutine.h"
 #include "log.h"
+#include "timer/timewheel.h"
 
 namespace rockcoro{
 
@@ -21,6 +22,7 @@ static void* event_loop(void*){
         Scheduler::inst.coroutine_swap(job);
         TLScheduler::inst.flush_pending_push();
         TLScheduler::inst.flush_pending_destroy();
+        TLScheduler::inst.flush_pending_add_event();
     }
 	return nullptr;
 }
@@ -32,6 +34,9 @@ Scheduler::Scheduler(){
         pthread_create(&workers[i], nullptr, &event_loop, nullptr);
 		pthread_detach(workers[i]);
     }
+    // timewheel eventloop
+    pthread_create(&timewheel_worker, nullptr, &Timer::event_loop, nullptr);
+    pthread_detach(timewheel_worker);
 }
 
 Scheduler::~Scheduler(){
@@ -77,6 +82,13 @@ void Scheduler::coroutine_swap(Coroutine* coroutine){
 		coroutine->started=true;
         ctx_first_swap(old_coroutine->ctx, coroutine->ctx);
 	}
+}
+
+void Scheduler::coroutine_sleep(int delayMS){
+    TLScheduler& tl_scheduler=TLScheduler::inst;
+    tl_scheduler.pending_add_event=tl_scheduler.cur_coroutine;
+    tl_scheduler.pending_add_event->timewheel_node.delayMS=delayMS;
+    coroutine_swap(tl_scheduler.main_coroutine);
 }
 
 }
