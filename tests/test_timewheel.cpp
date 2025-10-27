@@ -14,6 +14,7 @@ using namespace rockcoro;
 using namespace std::chrono;
 
 struct ParamTestSleep {
+    int id;
     int sleep_ms;
     int actual_sleep_ms;
     bool is_finished;
@@ -47,6 +48,7 @@ TEST(TimeWheelTest, SleepTest)
     ParamTestSleep params[num_coroutines];
     for (int i = 0; i < num_coroutines; ++i) {
         sleep_ms = SLEEP_MS_FUNC(i);
+        params[i].id = i;
         params[i].sleep_ms = sleep_ms;
         params[i].is_finished = false;
         Scheduler::inst.coroutine_create(&test_sleep, &params[i]);

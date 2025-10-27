@@ -56,7 +56,7 @@ void TimeWheel::tick()
     if (lower)
         while (TimeWheelLinkedListNode *node = cur_slot.pop_front()) {
             // add the node to the lower timewheel
-            node->delayMS -= intervalMS * TIMEWHEEL_NUM_SLOTS_PER_WHEEL;
+            node->delayMS %= intervalMS;
             lower->add_event(node->coroutine);
         }
     else {
@@ -103,7 +103,7 @@ void TimerManager::destroy()
 
 void *TimerManager::event_loop(void *)
 {
-    struct timespec next;
+    struct timespec next, cur_time;
     clock_gettime(CLOCK_MONOTONIC, &next);
 
     while (true) {
@@ -122,7 +122,11 @@ void *TimerManager::event_loop(void *)
             next.tv_sec++;
         }
 
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
+        // get current time
+        clock_gettime(CLOCK_MONOTONIC, &cur_time);
+        // if cur_time < next
+        if(cur_time.tv_sec<next.tv_sec || (cur_time.tv_sec==next.tv_sec && cur_time.tv_nsec<next.tv_nsec))
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
     }
 }
 

@@ -1,4 +1,4 @@
-#pragma once
+#include "bootstrap.h"
 #include "scheduler.h"
 #include "timer/timewheel.h"
 

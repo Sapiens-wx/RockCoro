@@ -5,6 +5,7 @@
 #include <thread>
 #include <unordered_set>
 #include <vector>
+#include "bootstrap.h"
 #include "basic_struct/data_structures.h"
 #include "log.h"
 
@@ -156,6 +157,9 @@ TEST(MSQueueTest, MultiThreadTest)
 
 int main(int argc, char **argv)
 {
+	rockcoro::init();
     testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+	int run_result= RUN_ALL_TESTS();
+	rockcoro::destroy();
+	return run_result;
 }

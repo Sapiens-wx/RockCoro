@@ -26,8 +26,8 @@ struct Scheduler {
 
     Scheduler();
     ~Scheduler();
-    init();
-    destroy();
+    void init();
+    void destroy();
     /// @brief gets the scheduler instance
     void job_push(Coroutine *coroutine);
     Coroutine *job_pop();
