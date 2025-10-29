@@ -3,7 +3,7 @@
 namespace rockcoro
 {
 
-    struct Context;
+    struct CoroutineContext;
     struct Coroutine;
 
     extern "C" void ctx_swap(Coroutine *from, Coroutine *to) asm("ctx_swap");
@@ -12,13 +12,13 @@ namespace rockcoro
 
     typedef void (*CoroutineFunc)(void *);
 
-    struct Context
+    struct CoroutineContext
     {
         // registers.
         // return address is stored in *rsp
-        void *r15, *r14, *r13, *r12, *rbp, *rsp, *rbx;
+        void *r12, *r13, *r14, *r15, *rbp, *rsp, *rbx;
 
-        Context();
+        CoroutineContext();
         // called when the coroutine is swapped for the first time
         void init(Coroutine &coroutine);
     };

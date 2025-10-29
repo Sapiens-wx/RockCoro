@@ -6,13 +6,13 @@ namespace rockcoro
 {
 
     struct Stack;
-    struct Context;
+    struct CoroutineContext;
 
     typedef void (*CoroutineFunc)(void *);
 
     struct Coroutine
     {
-        Context ctx;
+        CoroutineContext ctx;
         Stack stack;
 
         // the function that this coroutine runs on.<br>

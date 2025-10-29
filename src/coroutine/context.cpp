@@ -12,7 +12,7 @@ namespace rockcoro
     // wrap the coroutine function with this handler function.
     // when the coroutine returns, it will go back to this function, and it will handle the clean up stuff.
     // we wrap the coroutine function instead of setting the return address of the coroutine function to this function because if we do, we do not have a stack to execute the handler function.
-    static void coroutine_function_handler(Coroutine *coroutine, void *args)
+    static void coroutine_function_handler(CoroutineCoroutine *coroutine, void *args)
     {
         if (coroutine->fn)
         {
@@ -25,7 +25,7 @@ namespace rockcoro
         Scheduler::inst.coroutine_exit_swap(tl_scheduler.main_coroutine);
     }
 
-    Context::Context(Coroutine &coroutine)
+    CoroutineContext::CoroutineContext(Coroutine &coroutine)
     {
         // if coroutine.fn==nullptr, then assumes this is the main coroutine.
         // So no need to initialize the register values
@@ -34,7 +34,7 @@ namespace rockcoro
         memset(regs, 0, sizeof(regs));
     }
 
-    void Context::init(Coroutine &coroutine)
+    void CoroutineContext::init(CoroutineCoroutine &coroutine)
     {
         // pointer to stack base. leave three pointer space for:
         // ---stack base---
