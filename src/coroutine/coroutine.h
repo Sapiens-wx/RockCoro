@@ -12,8 +12,8 @@ namespace rockcoro
 
     struct Coroutine
     {
-        Context *ctx;
-        Stack *stack;
+        Context ctx;
+        Stack stack;
 
         // the function that this coroutine runs on.<br>
         // If cn==nullptr, assumes that this is the main coroutine,
@@ -35,7 +35,6 @@ namespace rockcoro
         // @param fn the function that this coroutine runs on
         // @param args the parameters of fn
         Coroutine(CoroutineFunc fn, void *args);
-        ~Coroutine();
     };
 
 }

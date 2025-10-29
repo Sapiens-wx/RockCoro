@@ -83,7 +83,7 @@ namespace rockcoro
         TLScheduler &tl_scheduler = TLScheduler::inst;
         Coroutine *old_coroutine = tl_scheduler.cur_coroutine;
         tl_scheduler.cur_coroutine = coroutine;
-        ctx_exit_swap(coroutine->ctx);
+        ctx_exit_swap(coroutine);
     }
     void Scheduler::coroutine_swap(Coroutine *coroutine)
     {
@@ -92,12 +92,13 @@ namespace rockcoro
         tl_scheduler.cur_coroutine = coroutine;
         if (coroutine->started)
         {
-            ctx_swap(old_coroutine->ctx, coroutine->ctx);
+            ctx_swap(old_coroutine, coroutine);
         }
-        else
+        else // never started the coroutine. init the context
         {
             coroutine->started = true;
-            ctx_entry_swap(old_coroutine->ctx, coroutine->ctx);
+            coroutine->ctx.init(*coroutine);
+            ctx_entry_swap(old_coroutine, coroutine);
         }
     }
 

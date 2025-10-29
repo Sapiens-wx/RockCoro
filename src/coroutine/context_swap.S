@@ -2,7 +2,7 @@
     .globl ctx_first_swap
     .type  ctx_first_swap, @function
 
-# void ctx_entry_swap(Context* from, Context* to) asm("ctx_first_swap");
+# void ctx_entry_swap(Coroutine* from, Coroutine* to) asm("ctx_first_swap");
 # normal context swap function. swaps and saves r12-15, rbx, rbp, rsp, rip
 ctx_entry_swap:
     # params : from = rdi, to = rsi
@@ -24,7 +24,7 @@ ctx_entry_swap:
     .globl ctx_swap
     .type  ctx_swap, @function
 
-# void ctx_swap(Context* from, Context* to) asm("ctx_swap");
+# void ctx_swap(Coroutine* from, Coroutine* to) asm("ctx_swap");
 # normal context swap function. swaps and saves r12-15, rbx, rbp, rsp, rip
 ctx_swap:
     # params : from = rdi, to = rsi
@@ -48,7 +48,7 @@ ctx_swap:
 
     .globl ctx_last_swap
     .type  ctx_last_swap, @function
-# void ctx_exit_swap(Context* to) asm("ctx_last_swap");
+# void ctx_exit_swap(Coroutine* to) asm("ctx_last_swap");
 # swaps the context but does not save the context
 # used when a coroutine returns
 ctx_exit_swap:

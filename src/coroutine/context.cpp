@@ -32,6 +32,10 @@ namespace rockcoro
         if (coroutine.fn == nullptr)
             return;
         memset(regs, 0, sizeof(regs));
+    }
+
+    void Context::init(Coroutine &coroutine)
+    {
         // pointer to stack base. leave three pointer space for:
         // ---stack base---
         //  return address
