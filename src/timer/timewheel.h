@@ -45,7 +45,7 @@ namespace rockcoro
 
         TimeWheel();
         void tick();
-        void add_event(Coroutine *coroutine, int delayMS);
+        void add_event(Coroutine *coroutine);
     };
 
     struct TimerManager
@@ -68,6 +68,8 @@ namespace rockcoro
     private:
         void push_pending_event(Coroutine *coroutine);
         Coroutine *pop_pending_event();
+        // actually adds the coroutine to the timewheel. expire time will be stored in coroutine
+        void internal_add_event(Coroutine *coroutine);
     };
 
 }

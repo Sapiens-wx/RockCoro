@@ -47,25 +47,15 @@ namespace rockcoro
         tail->next = nullptr;
     }
 
-    void TimeWheel::add_event(Coroutine *coroutine, int delayMS)
+    void TimeWheel::add_event(Coroutine *coroutine)
     {
+        int delayMS = coroutine->timewheel_node.delayMS;
         if (delayMS >= intervalMS * TIMEWHEEL_NUM_SLOTS_PER_WHEEL)
-        { // add to upper timewheel
-            if (upper)
-            {
-                upper->add_event(coroutine, delayMS);
-            }
-            else
-            {
-                throw "cannot add event with such long interval";
-            }
+        {
+            throw "cannot add event with such long interval";
         }
-        else
-        { // add to this timewheel
-            coroutine->timewheel_node->delayMS = delayMS;
-            int slot_idx = (cur_slot_idx + delayMS / intervalMS) % (TIMEWHEEL_NUM_SLOTS_PER_WHEEL);
-            slots[slot_idx].push_back(coroutine);
-        }
+        int slot_idx = (cur_slot_idx + delayMS / intervalMS) % (TIMEWHEEL_NUM_SLOTS_PER_WHEEL);
+        slots[slot_idx].push_back(coroutine);
     }
 
     void TimeWheel::tick()
@@ -75,7 +65,8 @@ namespace rockcoro
             while (TimeWheelLinkedListNode *node = cur_slot.pop_front())
             {
                 // add the node to the lower timewheel
-                lower->add_event(node->coroutine, node->delayMS - intervalMS * TIMEWHEEL_NUM_SLOTS_PER_WHEEL);
+                node->delayMS -= intervalMS * TIMEWHEEL_NUM_SLOTS_PER_WHEEL;
+                lower->add_event(node->coroutine);
             }
         else
         {
@@ -98,7 +89,7 @@ namespace rockcoro
     TimerManager::TimerManager()
     {
         pthread_spin_init(&spin_pending_events, 0);
-        lowest_timewheel = timewheels[0];
+        lowest_timewheel = &timewheels[0];
         lowest_timewheel->lower = nullptr;
         lowest_timewheel->intervalMS = TIMEWHEEL_INTERVAL_MS;
         TimeWheel *cur_wheel = lowest_timewheel;
@@ -126,7 +117,7 @@ namespace rockcoro
             // add pending events
             while (TimeWheelLinkedListNode *pending_event = TimerManager::inst.pop_pending_event())
             {
-                lowest_timewheel->add_event(pending_event, pending_event->delayMS);
+                internal_add_event(pending_event->coroutine);
             }
 
             // tick timewheel
@@ -148,6 +139,26 @@ namespace rockcoro
     {
         coroutine->timewheel_node.delayMS = delayMS;
         push_pending_event(coroutine);
+    }
+
+    void TimerManager::internal_add_event(Coroutine *coroutine)
+    {
+        int timewheel_index = 0;
+        // calculates which timewheel to add the coroutine
+        int delayMS = coroutine->timewheel_node.delayMS / TIMEWHEEL_INTERVAL_MS;
+        for (; timewheel_index < TIMEWHEEL_NUM_WHEELS;)
+        {
+            delayMS /= TIMEWHEEL_NUM_SLOTS_PER_WHEEL;
+            if (delayMS > 0)
+                ++timewheel_index;
+            else
+                break;
+        }
+        if (timewheel_index >= TIMEWHEEL_NUM_WHEELS)
+        {
+            throw "cannot add event with such long interval";
+        }
+        timewheels[timewheel_index].add_event(coroutine);
     }
 
     void TimerManager::push_pending_event(Coroutine *coroutine)
