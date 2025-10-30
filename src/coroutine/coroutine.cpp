@@ -6,7 +6,7 @@ namespace rockcoro
 {
 
     Coroutine::Coroutine(CoroutineFunc fn, void *args)
-        : fn(fn), args(args), node(this), timewheel_node(nullptr), started(false)
+        : fn(fn), args(args), node(this), timewheel_node(this)
     {
     }
 

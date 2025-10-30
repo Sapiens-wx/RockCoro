@@ -21,7 +21,7 @@ namespace rockcoro
         // be created but not initialized
         CoroutineFunc fn;
         // args the parameters of fn
-        void *args;
+        void *args = nullptr;
 
         // the node used when this coroutine is pushed or poped from a LinkedList
         LinkedListNode node;
@@ -30,7 +30,7 @@ namespace rockcoro
 
         // has the coroutine started?
         // if not, ctx_first_swap will be used instead of ctx_swap.
-        bool started;
+        bool started = false;
 
         // @param fn the function that this coroutine runs on
         // @param args the parameters of fn

@@ -9,10 +9,6 @@ namespace rockcoro
     {
     }
 
-    LinkedList::LinkedList()
-        : head(nullptr), tail(nullptr)
-    {
-    }
     // pop an element from head. returns nullptr if empty
     Coroutine *LinkedList::pop_front()
     {

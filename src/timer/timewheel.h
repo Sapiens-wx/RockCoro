@@ -12,8 +12,8 @@ namespace rockcoro
 
     struct TimeWheelLinkedListNode
     {
-        TimeWheelLinkedListNode *next;
-        Coroutine *coroutine;
+        TimeWheelLinkedListNode *next = nullptr;
+        Coroutine *coroutine = nullptr;
         int delayMS;
 
         TimeWheelLinkedListNode(Coroutine *coroutine);
@@ -21,8 +21,8 @@ namespace rockcoro
 
     struct TimeWheelLinkedList
     {
-        TimeWheelLinkedListNode *head;
-        TimeWheelLinkedListNode *tail;
+        TimeWheelLinkedListNode *head = nullptr;
+        TimeWheelLinkedListNode *tail = nullptr;
 
         TimeWheelLinkedList();
         // pop an element from head. returns nullptr if empty
@@ -38,8 +38,8 @@ namespace rockcoro
     {
         TimeWheelLinkedList slots[TIMEWHEEL_NUM_SLOTS_PER_WHEEL];
         // pointer to the time wheel with larger interval
-        TimeWheel *lower, *upper;
-        int cur_slot_idx;
+        TimeWheel *lower = nullptr, *upper = nullptr;
+        int cur_slot_idx = 0;
         // the interval in ms between two slots
         int intervalMS;
 
@@ -48,19 +48,19 @@ namespace rockcoro
         void add_event(Coroutine *coroutine, int delayMS);
     };
 
-    struct Timer
+    struct TimerManager
     {
-        static Timer inst;
+        static TimerManager inst;
         TimeWheel timewheels[TIMEWHEEL_NUM_WHEELS];
-        TimeWheel *lowest_timewheel;
-        // coroutines that are added to the timewheel by Timer::add_event. (they are actually temporarily
+        TimeWheel *lowest_timewheel = nullptr;
+        // coroutines that are added to the timewheel by TimerManager::add_event. (they are actually temporarily
         // added to this pending queue)
         // event_loop will actually add these events to the timewheel.
         TimeWheelLinkedList pending_events;
         pthread_spinlock_t spin_pending_events;
 
-        Timer();
-        ~Timer();
+        TimerManager();
+        ~TimerManager();
         // tick every [TIMEWHEEL_INTERVAL_MS] ms
         static void *event_loop(void *);
         void add_event(Coroutine *coroutine, int delayMS);

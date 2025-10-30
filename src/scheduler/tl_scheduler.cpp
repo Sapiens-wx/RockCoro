@@ -9,7 +9,6 @@ namespace rockcoro
     thread_local TLScheduler TLScheduler::inst;
 
     TLScheduler::TLScheduler()
-        : pending_push(nullptr), pending_destroy(nullptr)
     {
         main_coroutine = new Coroutine(nullptr, nullptr);
         cur_coroutine = main_coroutine;
@@ -46,7 +45,7 @@ namespace rockcoro
     {
         if (pending_add_event)
         {
-            Timer::inst.add_event(pending_add_event, pending_add_event->timewheel_node.delayMS);
+            TimerManager::inst.add_event(pending_add_event, pending_add_event->timewheel_node.delayMS);
             pending_add_event = nullptr;
         }
     }

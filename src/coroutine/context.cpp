@@ -31,7 +31,6 @@ namespace rockcoro
         // So no need to initialize the register values
         if (coroutine.fn == nullptr)
             return;
-        memset(regs, 0, sizeof(regs));
     }
 
     void CoroutineContext::init(CoroutineCoroutine &coroutine)

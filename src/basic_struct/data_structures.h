@@ -28,9 +28,9 @@ namespace rockcoro
         struct Node
         {
             T data;
-            Node *prev;
-            Node *next;
-            Node(const T &val) : data(val), prev(nullptr), next(nullptr) {}
+            Node *prev = nullptr;
+            Node *next = nullptr;
+            Node(const T &val) : data(val) {}
         };
 
         Node *head;
@@ -129,9 +129,9 @@ namespace rockcoro
         };
 
         Segment *data[SEG_COUNT];
-        size_t top, bottom; // bottom is exclusive
+        size_t top = 0, bottom = 0; // bottom is exclusive
 
-        Queue() : top(0), bottom(0)
+        Queue()
         {
             for (size_t i = 0; i < SEG_COUNT; ++i)
             {
@@ -203,10 +203,9 @@ namespace rockcoro
 
     struct LinkedList
     {
-        LinkedListNode *head;
-        LinkedListNode *tail;
+        LinkedListNode *head = nullptr;
+        LinkedListNode *tail = nullptr;
 
-        LinkedList();
         // pop an element from head. returns nullptr if empty
         Coroutine *pop_front();
         void push_back(Coroutine *coroutine);

@@ -7,15 +7,14 @@
 namespace rockcoro
 {
 
-    Timer Timer::inst;
+    TimerManager TimerManager::inst;
 
     TimeWheelLinkedListNode::TimeWheelLinkedListNode(Coroutine *coroutine)
-        : next(nullptr), coroutine(coroutine)
+        : coroutine(coroutine)
     {
     }
 
     TimeWheelLinkedList::TimeWheelLinkedList()
-        : head(nullptr), tail(nullptr)
     {
     }
     // pop an element from head. returns nullptr if empty
@@ -46,11 +45,6 @@ namespace rockcoro
             tail = tail->next;
         }
         tail->next = nullptr;
-    }
-
-    TimeWheel::TimeWheel()
-        : lower(nullptr), upper(nullptr)
-    {
     }
 
     void TimeWheel::add_event(Coroutine *coroutine, int delayMS)
@@ -101,7 +95,7 @@ namespace rockcoro
         }
     }
 
-    Timer::Timer()
+    TimerManager::TimerManager()
     {
         pthread_spin_init(&spin_pending_events, 0);
         lowest_timewheel = timewheels[0];
@@ -117,12 +111,12 @@ namespace rockcoro
         }
     }
 
-    Timer::~Timer()
+    TimerManager::~TimerManager()
     {
         pthread_spin_destroy(&spin_pending_events);
     }
 
-    void *Timer::event_loop(void *)
+    void *TimerManager::event_loop(void *)
     {
         struct timespec next;
         clock_gettime(CLOCK_MONOTONIC, &next);
@@ -130,7 +124,7 @@ namespace rockcoro
         while (true)
         {
             // add pending events
-            while (TimeWheelLinkedListNode *pending_event = Timer::inst.pop_pending_event())
+            while (TimeWheelLinkedListNode *pending_event = TimerManager::inst.pop_pending_event())
             {
                 lowest_timewheel->add_event(pending_event, pending_event->delayMS);
             }
@@ -150,20 +144,20 @@ namespace rockcoro
         }
     }
 
-    void Timer::add_event(Coroutine *coroutine, int delayMS)
+    void TimerManager::add_event(Coroutine *coroutine, int delayMS)
     {
         coroutine->timewheel_node.delayMS = delayMS;
         push_pending_event(coroutine);
     }
 
-    void Timer::push_pending_event(Coroutine *coroutine)
+    void TimerManager::push_pending_event(Coroutine *coroutine)
     {
         pthread_spin_lock(&spin_pending_events);
         pending_events.push_back(coroutine);
         pthread_spin_unlock(&spin_pending_events);
     }
 
-    Coroutine *Timer::pop_pending_event()
+    Coroutine *TimerManager::pop_pending_event()
     {
         pthread_spin_lock(&spin_pending_events);
         Coroutine *ret = pending_events.pop_front();
