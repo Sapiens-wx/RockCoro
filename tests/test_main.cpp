@@ -1,12 +1,13 @@
-#include <gtest/gtest.h>
-#include <thread>
-#include <vector>
 #include <atomic>
-#include <unordered_set>
+#include <gtest/gtest.h>
 #include <mutex>
 #include <stdio.h>
+#include <thread>
+#include <unordered_set>
+#include <vector>
 #include "basic_struct/data_structures.h"
 #include "log.h"
+
 
 using namespace rockcoro;
 
@@ -15,23 +16,19 @@ TEST(DequeTest, PushPop)
     Deque<int> q;
     EXPECT_TRUE(q.empty());
     EXPECT_EQ(q.size(), 0);
-    for (int i = 0; i < 100; ++i)
-    {
+    for (int i = 0; i < 100; ++i) {
         q.push_back(i);
     }
-    for (int i = 0; i < 100; ++i)
-    {
+    for (int i = 0; i < 100; ++i) {
         EXPECT_EQ(q.size(), 100 - i);
         EXPECT_EQ(q.front(), i);
         EXPECT_FALSE(q.empty());
         q.pop_front();
     }
-    for (int i = 100; i < 200; ++i)
-    {
+    for (int i = 100; i < 200; ++i) {
         q.push_front(i);
     }
-    for (int i = 100; i < 200; ++i)
-    {
+    for (int i = 100; i < 200; ++i) {
         EXPECT_EQ(q.back(), i);
         EXPECT_FALSE(q.empty());
         q.pop_back();
@@ -55,34 +52,26 @@ TEST(ChaseLevDequeTest, MultiThreadFinalTest)
 
     // theft thread: steal jobs using pop_front
     // if id==0, then consider it as main thread
-    auto consumer = [&](int id)
-    {
+    auto consumer = [&](int id) {
         int val;
-        while (pop_count.load() < ITEMS_PER_PRODUCER)
-        {
+        while (pop_count.load() < ITEMS_PER_PRODUCER) {
             const int *ptr = nullptr;
             ptr = id == 0 ? dq.pop_back() : dq.pop_front();
 
-            if (ptr)
-            {
+            if (ptr) {
                 val = *ptr;
                 std::lock_guard<std::mutex> lock(result_mutex);
-                ASSERT_TRUE(results.insert(val).second)
-                    << "Duplicate value detected: " << val;
+                ASSERT_TRUE(results.insert(val).second) << "Duplicate value detected: " << val;
                 pop_count++;
-            }
-            else
-            {
+            } else {
                 std::this_thread::yield(); // 暂时无元素，yield
             }
         }
     };
 
     // 生产者线程：每个生产者 push 一批唯一的数字
-    auto producer = [&](int id)
-    {
-        for (int i = 0; i < ITEMS_PER_PRODUCER; ++i)
-        {
+    auto producer = [&](int id) {
+        for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
             int val = id * ITEMS_PER_PRODUCER + i;
             dq.push_back(val);
             push_count++;
@@ -123,34 +112,26 @@ TEST(MSQueueTest, MultiThreadTest)
 
     // theft thread: steal jobs using pop_front
     // if id==0, then consider it as main thread
-    auto consumer = [&](int id)
-    {
+    auto consumer = [&](int id) {
         int val;
-        while (pop_count.load() < NUM_PRODUCERS * ITEMS_PER_PRODUCER)
-        {
+        while (pop_count.load() < NUM_PRODUCERS * ITEMS_PER_PRODUCER) {
             const int *ptr = nullptr;
             ptr = q.pop();
 
-            if (ptr)
-            {
+            if (ptr) {
                 val = *ptr;
                 std::lock_guard<std::mutex> lock(result_mutex);
-                ASSERT_TRUE(results.insert(val).second)
-                    << "Duplicate value detected: " << val;
+                ASSERT_TRUE(results.insert(val).second) << "Duplicate value detected: " << val;
                 pop_count++;
-            }
-            else
-            {
+            } else {
                 std::this_thread::yield(); // 暂时无元素，yield
             }
         }
     };
 
     // 生产者线程：每个生产者 push 一批唯一的数字
-    auto producer = [&](int id)
-    {
-        for (int i = 0; i < ITEMS_PER_PRODUCER; ++i)
-        {
+    auto producer = [&](int id) {
+        for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
             int val = id * ITEMS_PER_PRODUCER + i;
             q.push(val);
             push_count++;

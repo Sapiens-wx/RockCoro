@@ -1,14 +1,13 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "coroutine/coroutine.h"
 #include "coroutine/context.h"
+#include "coroutine/coroutine.h"
 #include "scheduler.h"
 
 using namespace rockcoro;
 
-struct CoroParams
-{
+struct CoroParams {
     Coroutine *self;
     Coroutine *originalCoro;
     int i;
@@ -27,11 +26,11 @@ TEST(ContextSwapTest, SingleFunctionTest)
     Coroutine mainCoro(nullptr, nullptr);
     CoroParams args;
     Coroutine coro(&coro1, &args);
-	coro.ctx.init(coro);
+    coro.ctx.init(coro);
     args.self = &coro;
     args.originalCoro = &mainCoro;
     args.i = 1;
-	Scheduler::inst.coroutine_create(&coro1, &args);
-	sleep(2);
+    Scheduler::inst.coroutine_create(&coro1, &args);
+    sleep(2);
     printf("main routine, i=%d\n", args.i);
 }

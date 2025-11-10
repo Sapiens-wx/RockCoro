@@ -2,13 +2,13 @@
 #include <cstdarg>
 #include <string>
 
-namespace rockcoro{
+namespace rockcoro {
 
 #define DEBUG 1
 #if DEBUG
 
 // log into different files for different threads
-void logf(const char* fmt, ...);
+void logf(const char *fmt, ...);
 
 #else
 #define init_thread_logger()
@@ -16,4 +16,4 @@ void logf(const char* fmt, ...);
 #define close_thread_logger()
 #endif
 
-}
+} // namespace rockcoro

@@ -1,16 +1,15 @@
 #include "stack.h"
 
-namespace rockcoro
+namespace rockcoro {
+
+Stack::Stack()
 {
-
-    Stack::Stack()
-    {
-        stack_mem = new StackMem();
-    }
-
-    Stack::~Stack()
-    {
-        delete stack_mem;
-    }
-
+    stack_mem = new StackMem();
 }
+
+Stack::~Stack()
+{
+    delete stack_mem;
+}
+
+} // namespace rockcoro
