@@ -21,9 +21,14 @@ namespace rockcoro
         // workers
         pthread_t workers[SCHEDULER_NUM_WORKERS];
         pthread_t timewheel_worker;
+        // if Scheduler::destroy() is called, then running is set to false.
+        // otherwise running is true.
+        bool running = true;
 
         Scheduler();
         ~Scheduler();
+        init();
+        destroy();
         /// @brief gets the scheduler instance
         void job_push(Coroutine *coroutine);
         Coroutine *job_pop();

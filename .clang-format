@@ -1,0 +1,86 @@
+# Basic Configuration
+Language: Cpp                     # Target language is C++
+BasedOnStyle: LLVM                # Extend from LLVM style
+IndentWidth: 4                    # Indentation width in spaces
+TabWidth: 4                       # Tab character width (equivalent to 4 spaces)
+UseTab: Never                     # Never use tabs, always use spaces
+ColumnLimit: 100                  # Line width limit (recommended 80-120 characters)
+MaxEmptyLinesToKeep: 1            # Maximum consecutive empty lines to preserve
+
+# Access Modifier Configuration
+AccessModifierOffset: -4          # Indent offset for public/protected/private (-4 spaces = left-aligned with class)
+IndentAccessModifiers: false      # Do not indent access modifiers an additional level
+EmptyLineBeforeAccessModifier: LogicalBlock  # Add empty line before access modifiers in logical blocks
+
+# Brace Wrapping and Newline Control
+BreakBeforeBraces: Custom         # Enable custom brace wrapping rules
+BraceWrapping:
+  AfterNamespace: false           # Braces for namespaces on same line
+  AfterClass: false               # Braces for classes on same line
+  AfterEnum: false                # Braces for enums on same line
+  AfterFunction: true             # Braces for functions on new line
+  AfterCaseLabel: false           # Braces after case labels on same line
+  BeforeElse: false               # Else on same line as closing brace
+  BeforeCatch: false              # Catch on same line as closing brace
+  IndentBraces: false             # Do not indent braces themselves
+  AfterControlStatement: false    # Braces for control statements on same line
+  SplitEmptyNamespace: true       # Split braces for empty namespaces onto separate lines
+
+# Namespace Configuration
+NamespaceIndentation: None        # No additional indentation inside namespaces
+FixNamespaceComments: true        # Automatically add closing namespace comments (// namespace XXX)
+ShortNamespaceLines: 0            # Always add closing comments regardless of namespace length
+
+# Indentation Control
+IndentCaseLabels: false           # Case labels align with switch (no indentation)
+IndentCaseBlocks: false           # Indent code blocks inside case statements
+IndentGotoLabels: true            # Indent goto labels (to avoid confusion with code)
+ContinuationIndentWidth: 4        # Indentation width for line continuations
+
+# Function and Parameter Configuration
+AllowShortFunctionsOnASingleLine: None  # Never allow functions on single line
+BinPackArguments: false           # Function arguments: either single line or one per line
+BinPackParameters: false          # Function parameters: disable compact packing
+BreakConstructorInitializers: BeforeComma  # Break constructor initializers before commas
+ConstructorInitializerIndentWidth: 4  # Indentation width for initializer lists
+
+# Operators and Alignment
+AlignOperands: Align              # Align operands when broken across lines
+AlignTrailingComments:            # Configuration for trailing comment alignment
+  Kind: Always                    # Force alignment of trailing // comments
+  OverEmptyLines: 1               # Allow alignment across max 1 empty line
+PointerAlignment: Right           # Pointer symbols align to the right (int *ptr)
+ReferenceAlignment: Pointer       # Reference alignment follows pointer configuration
+
+# Control Statement Configuration
+AllowShortIfStatementsOnASingleLine: Never  # Never allow single-line if statements
+AllowShortLoopsOnASingleLine: false       # Disable single-line loop statements
+BreakBeforeTernaryOperators: true  # Break before ternary operators (?:)
+
+# Formatting Details
+Cpp11BracedListStyle: true        # Enable C++11 braced list style (no extra spaces)
+SpacesInParentheses: false        # No spaces inside parentheses
+SpacesInSquareBrackets: false     # No spaces inside square brackets
+SpaceBeforeParens: ControlStatements  # Add space before parentheses in control statements (if (x) not if(x))
+
+# Templates and Generics
+AlwaysBreakTemplateDeclarations: MultiLine  # Force line breaks in multi-line template declarations
+IndentRequiresClause: true        # Indent C++20 requires clauses
+
+# Comment Configuration
+CommentPragmas: '^ IWYU pragma:'  # Preserve IWYU comments from formatting changes
+ReflowComments: false             # Disable comment reflow (preserves manual line breaks)
+
+# Consecutive Statement Alignment (Optional)
+AlignConsecutiveAssignments:
+  Enabled: false                  # Disable alignment of consecutive assignments (may cause excessive changes)
+  AcrossEmptyLines: false
+AlignConsecutiveDeclarations:
+  Enabled: false                  # Disable alignment of consecutive variable declarations
+# auto sort the #include
+SortIncludes: true
+IncludeCategories:
+  - Regex:           '^<.*>'  # system header file
+    Priority:        1        # first
+  - Regex:           '^\".*"'  # local header file
+    Priority:        2        # second
