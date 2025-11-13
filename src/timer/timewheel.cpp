@@ -5,10 +5,7 @@
 #include "log.h"
 #include "scheduler.h"
 
-
 namespace rockcoro {
-
-TimerManager TimerManager::inst;
 
 TimeWheelLinkedListNode::TimeWheelLinkedListNode(Coroutine *coroutine)
     : coroutine(coroutine)
@@ -78,6 +75,10 @@ void TimeWheel::tick()
 
 TimerManager::TimerManager()
 {
+}
+
+void TimerManager::init()
+{
     pthread_spin_init(&spin_pending_events, 0);
     lowest_timewheel = &timewheels[0];
     lowest_timewheel->lower = nullptr;
@@ -92,6 +93,10 @@ TimerManager::TimerManager()
 }
 
 TimerManager::~TimerManager()
+{
+}
+
+void TimerManager::destroy()
 {
     pthread_spin_destroy(&spin_pending_events);
 }

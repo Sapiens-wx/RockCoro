@@ -53,6 +53,8 @@ struct TimerManager {
 
     TimerManager();
     ~TimerManager();
+    void init();
+    void destroy();
     // tick every [TIMEWHEEL_INTERVAL_MS] ms
     static void *event_loop(void *);
     void add_event(Coroutine *coroutine, int delayMS);
