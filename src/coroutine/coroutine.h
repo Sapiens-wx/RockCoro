@@ -16,12 +16,12 @@ struct Coroutine {
     // If cn==nullptr, assumes that this is the main coroutine,
     // and its stack will not be allocated and its context will
     // be created but not initialized
-    CoroutineFunc fn;
+    CoroutineFunc fn = nullptr;
     // args the parameters of fn
     void *args = nullptr;
 
     // the node used when this coroutine is pushed or poped from a LinkedList
-    LinkedListNode node;
+    TLLinkedListNode node;
     // the node used when this coroutine is added to the time wheel
     TimeWheelLinkedListNode timewheel_node;
 

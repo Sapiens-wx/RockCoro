@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 #include "log.h"
 
 namespace rockcoro {
@@ -204,7 +203,7 @@ template <typename T, size_t SEG_SIZE = 1024, size_t SEG_COUNT = 1024> struct Qu
 };
 
 struct LinkedListNode {
-    LinkedListNode *next;
+    LinkedListNode *next = nullptr;
     Coroutine *coroutine;
 
     LinkedListNode(Coroutine *coroutine);
@@ -213,6 +212,24 @@ struct LinkedListNode {
 struct LinkedList {
     LinkedListNode *head = nullptr;
     LinkedListNode *tail = nullptr;
+
+    // pop an element from head. returns nullptr if empty
+    Coroutine *pop_front();
+    void push_back(Coroutine *coroutine);
+};
+
+//thread safe linked list node
+struct TLLinkedListNode {
+    std::atomic<TLLinkedListNode *> next;
+    Coroutine *coroutine;
+
+    TLLinkedListNode(Coroutine *coroutine);
+};
+
+//thread safe linked list. can be used only by scheduler
+struct TLLinkedList {
+    std::atomic<TLLinkedListNode *> head = nullptr;
+    std::atomic<TLLinkedListNode *> tail = nullptr;
 
     // pop an element from head. returns nullptr if empty
     Coroutine *pop_front();
