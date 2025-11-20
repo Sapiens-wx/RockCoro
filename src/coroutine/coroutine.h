@@ -21,7 +21,7 @@ struct Coroutine {
     void *args = nullptr;
 
     // the node used when this coroutine is pushed or poped from a LinkedList
-    TLLinkedListNode node;
+    LinkedListNode node;
     // the node used when this coroutine is added to the time wheel
     TimeWheelLinkedListNode timewheel_node;
 
