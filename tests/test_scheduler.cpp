@@ -64,7 +64,7 @@ struct Params {
     }
 };
 
-void consumer(void *args)
+static void consumer(void *args)
 {
     Params *param = (Params *)args;
     int val;
