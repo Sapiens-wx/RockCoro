@@ -203,21 +203,21 @@ template <typename T, size_t SEG_SIZE = 1024, size_t SEG_COUNT = 1024> struct Qu
 };
 
 //thread safe linked list node
-struct LinkedListNode {
-    std::atomic<LinkedListNode *> next;
-    Coroutine *coroutine;
+template <typename T> struct LinkedListNode {
+    std::atomic<LinkedListNode<T> *> next;
+    T *value;
 
-    LinkedListNode(Coroutine *coroutine);
+    LinkedListNode(T *value);
 };
 
 //thread safe linked list. can be used only by scheduler
-struct LinkedList {
-    std::atomic<LinkedListNode *> head = nullptr;
-    std::atomic<LinkedListNode *> tail = nullptr;
+template <typename T> struct LinkedList {
+    std::atomic<LinkedListNode<T> *> head = nullptr;
+    std::atomic<LinkedListNode<T> *> tail = nullptr;
 
     // pop an element from head. returns nullptr if empty
-    Coroutine *pop_front();
-    void push_back(Coroutine *coroutine);
+    T *pop_front();
+    void push_back(LinkedListNode<T> *node);
 };
 
 /// @brief Chase-Lev Deque
@@ -410,4 +410,64 @@ template <typename T, size_t SEG_SIZE = 1024, size_t SEG_COUNT = 1024> struct MS
     }
 };
 
+template <typename T>
+LinkedListNode<T>::LinkedListNode(T *value)
+    : value(value)
+{
+    next.store(nullptr, std::memory_order_relaxed);
+}
+
+template <typename T> T *LinkedList<T>::pop_front()
+{
+    while (true) {
+        LinkedListNode<T> *first = head.load();
+        if (first == nullptr)
+            return nullptr;
+        LinkedListNode<T> *last = tail.load(std::memory_order_acquire);
+        LinkedListNode<T> *second = first->next.load();
+        // if after we load [first] and [last], an element was pushed to the list, there are two options:
+        // 1) try again, OR
+        // 2) update tail here (set tail=second)
+        if (first == last && second != nullptr)
+            continue;
+        if (head.compare_exchange_weak(first, second)) {
+            first->next.compare_exchange_strong(second, nullptr);
+            // we are popping the last element, so the list should be empty. so set the tail to nullptr
+            if (second == nullptr) {
+                // here we might fail to update tail. Consider this: before executing the next line,
+                // some thread has pushed an element to the list. Then head==nullptr but tail!=nullptr.
+                // we need to set head to last->next, which is the newly pushed element
+                if (!tail.compare_exchange_strong(last, nullptr))
+                    head.compare_exchange_strong(second, last->next);
+            }
+            return first->value;
+        }
+    }
+}
+template <typename T> void LinkedList<T>::push_back(LinkedListNode<T> *value)
+{
+    LinkedListNode<T> *self = value;
+    self->next.store(nullptr);
+
+    while (true) {
+        LinkedListNode<T> *first = head.load(std::memory_order_acquire);
+        LinkedListNode<T> *last = tail.load(std::memory_order_acquire);
+        if (last == nullptr) { // the list is empty
+            if (tail.compare_exchange_weak(last, self)) {
+                head.compare_exchange_strong(first, self);
+                return;
+            }
+        } else { // the list is not empty
+            LinkedListNode<T> *next = last->next.load(std::memory_order_acquire);
+
+            if (next == nullptr) { // other threads haven't pushed
+                //try to append coroutine to the tail
+                if (last->next.compare_exchange_weak(next, self)) {
+                    tail.compare_exchange_strong(last, self);
+                    return;
+                }
+            }
+        }
+    }
+}
 } // namespace rockcoro

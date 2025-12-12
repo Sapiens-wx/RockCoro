@@ -1,10 +1,10 @@
 #include <atomic>
 #include <gtest/gtest.h>
+#include <mutex>
 #include <stdio.h>
 #include <thread>
 #include <unordered_set>
 #include <vector>
-#include <mutex>
 #include "basic_struct/data_structures.h"
 #include "coroutine/coroutine.h"
 #include "log.h"
@@ -17,7 +17,7 @@ constexpr const int NUM_PUSH_PER_ITEM = 10;
 
 struct Params {
     int id;
-    LinkedList &list;
+    LinkedList<Coroutine> &list;
 
     std::atomic<int> &pop_count;
 
@@ -27,7 +27,7 @@ struct Params {
     int *completed_consumer;
 
     Params(int id,
-           LinkedList &list,
+           LinkedList<Coroutine> &list,
            std::atomic<int> &pop_count,
            std::mutex &co_push_count_mutex,
            std::mutex &co_pop_count_mutex,
@@ -61,7 +61,7 @@ static void tl_linked_list_worker(void *args)
 {
     Params *param = (Params *)args;
     //TODO: set list
-    LinkedList *list = &param->list;
+    LinkedList<Coroutine> *list = &param->list;
 
     // create list nodes to be added to the linked list
     Coroutine *coroutines[ITEMS_PER_WORKER];
@@ -81,30 +81,30 @@ static void tl_linked_list_worker(void *args)
             int co_push_count = param->co_push_count[front];
             param->co_push_count_mutex.unlock();
             if (co_push_count < NUM_PUSH_PER_ITEM) { // still can push this coroutine
-                list->push_back(front);
+                list->push_back(&front->node);
                 std::lock_guard<std::mutex> lock(param->co_push_count_mutex);
                 param->co_push_count[front]++;
             }
         }
         // push jobs in [pending_adds]
         if (j < ITEMS_PER_WORKER) {
-            list->push_back(coroutines[j]);
+            list->push_back(&coroutines[j]->node);
             std::lock_guard<std::mutex> lock(param->co_push_count_mutex);
             param->co_push_count[coroutines[j]]++;
             ++j;
         }
     }
-	//release coroutines
-	for(int i=0;i<ITEMS_PER_WORKER; ++i){
-		delete coroutines[i];
-	}
+    //release coroutines
+    for (int i = 0; i < ITEMS_PER_WORKER; ++i) {
+        delete coroutines[i];
+    }
     param->completed_consumer[param->id] = 1;
     delete param;
 };
 
 TEST(TLLinkedListTest, PushPopTest)
 {
-    LinkedList list;
+    LinkedList<Coroutine> list;
     std::atomic<int> pop_count{0};
 
     std::mutex co_push_count_mutex, co_pop_count_mutex;
@@ -142,18 +142,18 @@ TEST(TLLinkedListTest, PushPopTest)
     }
     logf("all coroutines complete\n");
 
-	int coroutine_count=0;
+    int coroutine_count = 0;
     for (auto &[key, value] : co_pop_count) {
         EXPECT_EQ(value, NUM_PUSH_PER_ITEM);
-		++coroutine_count;
+        ++coroutine_count;
     }
-	EXPECT_EQ(coroutine_count, NUM_WORKERS * ITEMS_PER_WORKER);
-	coroutine_count=0;
+    EXPECT_EQ(coroutine_count, NUM_WORKERS * ITEMS_PER_WORKER);
+    coroutine_count = 0;
     for (auto &[key, value] : co_push_count) {
         EXPECT_EQ(value, NUM_PUSH_PER_ITEM);
-		++coroutine_count;
+        ++coroutine_count;
     }
-	EXPECT_EQ(coroutine_count, NUM_WORKERS * ITEMS_PER_WORKER);
+    EXPECT_EQ(coroutine_count, NUM_WORKERS * ITEMS_PER_WORKER);
 }
 /*
 TEST(DequeTest, PushPop)

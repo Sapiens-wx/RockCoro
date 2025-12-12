@@ -59,7 +59,7 @@ void Scheduler::destroy()
 void Scheduler::job_push(Coroutine *coroutine)
 {
     pthread_spin_lock(&spin_job_queue);
-    job_queue.push_back(coroutine);
+    job_queue.push_back(&coroutine->node);
     pthread_spin_unlock(&spin_job_queue);
     sem_post(&sem_job_queue);
 }
