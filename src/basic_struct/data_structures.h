@@ -475,7 +475,7 @@ TLLinkedListNode<T>::TLLinkedListNode(T *value)
     next.store(nullptr, std::memory_order_relaxed);
 }
 
-template <typename T> T *TLLinkedList<T>::pop_front()
+template <typename T> TLLinkedListNode<T> *TLLinkedList<T>::pop_front()
 {
     while (true) {
         TLLinkedListNode<T> *first = head.load();
@@ -498,7 +498,7 @@ template <typename T> T *TLLinkedList<T>::pop_front()
                 if (!tail.compare_exchange_strong(last, nullptr))
                     head.compare_exchange_strong(second, last->next);
             }
-            return first->value;
+            return first;
         }
     }
 }

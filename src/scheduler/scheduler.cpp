@@ -58,18 +58,14 @@ void Scheduler::destroy()
 
 void Scheduler::job_push(Coroutine *coroutine)
 {
-    pthread_spin_lock(&spin_job_queue);
     job_queue.push_back(&coroutine->node);
-    pthread_spin_unlock(&spin_job_queue);
     sem_post(&sem_job_queue);
 }
 Coroutine *Scheduler::job_pop()
 {
     sem_wait(&sem_job_queue);
-    pthread_spin_lock(&spin_job_queue);
-    Coroutine *ret = job_queue.pop_front();
-    pthread_spin_unlock(&spin_job_queue);
-    return ret;
+    TLLinkedListNode<Coroutine> *node = job_queue.pop_front();
+    return node == nullptr ? nullptr : node->value;
 }
 void Scheduler::coroutine_create(CoroutineFunc fn, void *args)
 {

@@ -71,8 +71,9 @@ static void tl_linked_list_worker(void *args)
     int j = 0;
 
     while (param->pop_count.load() < NUM_WORKERS * ITEMS_PER_WORKER * NUM_PUSH_PER_ITEM) {
-        Coroutine *front = list->pop_front();
-        if (front) {
+        TLLinkedListNode<Coroutine> *frontNode = list->pop_front();
+        if (frontNode) {
+            Coroutine *front = frontNode->value;
             param->pop_count++;
             param->co_pop_count_mutex.lock();
             param->co_pop_count[front]++;
