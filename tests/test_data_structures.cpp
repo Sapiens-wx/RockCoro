@@ -17,7 +17,7 @@ constexpr const int NUM_PUSH_PER_ITEM = 10;
 
 struct Params {
     int id;
-    LinkedList<Coroutine> &list;
+    TLLinkedList<Coroutine> &list;
 
     std::atomic<int> &pop_count;
 
@@ -27,7 +27,7 @@ struct Params {
     int *completed_consumer;
 
     Params(int id,
-           LinkedList<Coroutine> &list,
+           TLLinkedList<Coroutine> &list,
            std::atomic<int> &pop_count,
            std::mutex &co_push_count_mutex,
            std::mutex &co_pop_count_mutex,
@@ -61,7 +61,7 @@ static void tl_linked_list_worker(void *args)
 {
     Params *param = (Params *)args;
     //TODO: set list
-    LinkedList<Coroutine> *list = &param->list;
+    TLLinkedList<Coroutine> *list = &param->list;
 
     // create list nodes to be added to the linked list
     Coroutine *coroutines[ITEMS_PER_WORKER];
@@ -104,7 +104,7 @@ static void tl_linked_list_worker(void *args)
 
 TEST(TLLinkedListTest, PushPopTest)
 {
-    LinkedList<Coroutine> list;
+    TLLinkedList<Coroutine> list;
     std::atomic<int> pop_count{0};
 
     std::mutex co_push_count_mutex, co_pop_count_mutex;

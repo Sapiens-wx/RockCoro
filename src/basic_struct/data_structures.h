@@ -203,21 +203,21 @@ template <typename T, size_t SEG_SIZE = 1024, size_t SEG_COUNT = 1024> struct Qu
 };
 
 //thread safe linked list node
-template <typename T> struct LinkedListNode {
-    std::atomic<LinkedListNode<T> *> next;
+template <typename T> struct TLLinkedListNode {
+    std::atomic<TLLinkedListNode<T> *> next;
     T *value;
 
-    LinkedListNode(T *value);
+    TLLinkedListNode(T *value);
 };
 
 //thread safe linked list. can be used only by scheduler
-template <typename T> struct LinkedList {
-    std::atomic<LinkedListNode<T> *> head = nullptr;
-    std::atomic<LinkedListNode<T> *> tail = nullptr;
+template <typename T> struct TLLinkedList {
+    std::atomic<TLLinkedListNode<T> *> head = nullptr;
+    std::atomic<TLLinkedListNode<T> *> tail = nullptr;
 
     // pop an element from head. returns nullptr if empty
     T *pop_front();
-    void push_back(LinkedListNode<T> *node);
+    void push_back(TLLinkedListNode<T> *node);
 };
 
 /// @brief Chase-Lev Deque
@@ -411,20 +411,20 @@ template <typename T, size_t SEG_SIZE = 1024, size_t SEG_COUNT = 1024> struct MS
 };
 
 template <typename T>
-LinkedListNode<T>::LinkedListNode(T *value)
+TLLinkedListNode<T>::TLLinkedListNode(T *value)
     : value(value)
 {
     next.store(nullptr, std::memory_order_relaxed);
 }
 
-template <typename T> T *LinkedList<T>::pop_front()
+template <typename T> T *TLLinkedList<T>::pop_front()
 {
     while (true) {
-        LinkedListNode<T> *first = head.load();
+        TLLinkedListNode<T> *first = head.load();
         if (first == nullptr)
             return nullptr;
-        LinkedListNode<T> *last = tail.load(std::memory_order_acquire);
-        LinkedListNode<T> *second = first->next.load();
+        TLLinkedListNode<T> *last = tail.load(std::memory_order_acquire);
+        TLLinkedListNode<T> *second = first->next.load();
         // if after we load [first] and [last], an element was pushed to the list, there are two options:
         // 1) try again, OR
         // 2) update tail here (set tail=second)
@@ -444,21 +444,21 @@ template <typename T> T *LinkedList<T>::pop_front()
         }
     }
 }
-template <typename T> void LinkedList<T>::push_back(LinkedListNode<T> *value)
+template <typename T> void TLLinkedList<T>::push_back(TLLinkedListNode<T> *value)
 {
-    LinkedListNode<T> *self = value;
+    TLLinkedListNode<T> *self = value;
     self->next.store(nullptr);
 
     while (true) {
-        LinkedListNode<T> *first = head.load(std::memory_order_acquire);
-        LinkedListNode<T> *last = tail.load(std::memory_order_acquire);
+        TLLinkedListNode<T> *first = head.load(std::memory_order_acquire);
+        TLLinkedListNode<T> *last = tail.load(std::memory_order_acquire);
         if (last == nullptr) { // the list is empty
             if (tail.compare_exchange_weak(last, self)) {
                 head.compare_exchange_strong(first, self);
                 return;
             }
         } else { // the list is not empty
-            LinkedListNode<T> *next = last->next.load(std::memory_order_acquire);
+            TLLinkedListNode<T> *next = last->next.load(std::memory_order_acquire);
 
             if (next == nullptr) { // other threads haven't pushed
                 //try to append coroutine to the tail

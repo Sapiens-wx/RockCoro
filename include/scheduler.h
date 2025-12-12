@@ -13,7 +13,7 @@ typedef void (*CoroutineFunc)(void *);
 struct Scheduler {
     static Scheduler inst;
     /// @brief the job queue
-    LinkedList<Coroutine> job_queue;
+    TLLinkedList<Coroutine> job_queue;
     pthread_spinlock_t spin_job_queue;
     sem_t sem_job_queue;
     // workers
