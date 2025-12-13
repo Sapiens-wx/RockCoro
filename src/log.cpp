@@ -5,7 +5,6 @@
 #include <pthread.h>
 #include <stdio.h>
 
-
 namespace rockcoro {
 
 static std::atomic<int> _tid{0};
@@ -58,7 +57,7 @@ void logf(const char *fmt, ...)
     if (n > 0) {
         pthread_mutex_lock(&logger.mutex_log);
         fwrite(buffer, 1, n, logger.log_file);
-        printf(buffer);
+        printf("%s", buffer);
         fflush(logger.log_file);
         pthread_mutex_unlock(&logger.mutex_log);
     }

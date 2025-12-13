@@ -235,7 +235,7 @@ template <typename T> struct TLLinkedList {
     std::atomic<TLLinkedListNode<T> *> tail = nullptr;
 
     // pop an element from head. returns nullptr if empty
-    T *pop_front();
+    TLLinkedListNode<T> *pop_front();
     void push_back(TLLinkedListNode<T> *node);
 };
 
