@@ -9,13 +9,12 @@
 #include "log.h"
 #include "scheduler.h"
 
-
 using namespace rockcoro;
 
 constexpr const int NUM_CONSUMERS = 100, NUM_PRODUCERS = 100;
-constexpr const int ITEMS_PER_PRODUCER = 1000;
+constexpr const int ITEMS_PER_PRODUCER = 100;
 
-struct Params {
+struct SchedulerParams {
     int id;
     MSQueue<int> &q;
 
@@ -30,15 +29,15 @@ struct Params {
 
     int *completed_producer, *completed_consumer;
 
-    Params(int id,
-           MSQueue<int> &q,
-           std::atomic<int> &push_count,
-           std::atomic<int> &pop_count,
-           std::mutex &result_mutex,
-           std::unordered_set<int> &results,
-           std::mutex &print_mutex,
-           int *completed_producer,
-           int *completed_consumer)
+    SchedulerParams(int id,
+                    MSQueue<int> &q,
+                    std::atomic<int> &push_count,
+                    std::atomic<int> &pop_count,
+                    std::mutex &result_mutex,
+                    std::unordered_set<int> &results,
+                    std::mutex &print_mutex,
+                    int *completed_producer,
+                    int *completed_consumer)
         : id(id)
         , q(q)
         , push_count(push_count)
@@ -50,7 +49,7 @@ struct Params {
         , completed_consumer(completed_consumer)
     {
     }
-    Params(int id, const Params &tmp)
+    SchedulerParams(int id, const SchedulerParams &tmp)
         : id(id)
         , q(tmp.q)
         , push_count(tmp.push_count)
@@ -66,7 +65,7 @@ struct Params {
 
 static void consumer(void *args)
 {
-    Params *param = (Params *)args;
+    SchedulerParams *param = (SchedulerParams *)args;
     int val;
     while (param->pop_count.load() < NUM_PRODUCERS * ITEMS_PER_PRODUCER) {
         const int *ptr = nullptr;
@@ -88,7 +87,7 @@ static void consumer(void *args)
 // 生产者线程：每个生产者 push 一批唯一的数字
 static void producer(void *args)
 {
-    Params *param = (Params *)args;
+    SchedulerParams *param = (SchedulerParams *)args;
     for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
         int val = param->id * ITEMS_PER_PRODUCER + i;
         param->q.push(val);
@@ -101,7 +100,6 @@ static void producer(void *args)
 
 TEST(SchedulerTest, CoroutineTest)
 {
-	/*
     MSQueue<int> q;
 
     std::atomic<int> push_count{0};
@@ -120,22 +118,21 @@ TEST(SchedulerTest, CoroutineTest)
     memset(completed_consumer, 0, sizeof(completed_consumer));
 
     // param
-    Params tmp_param(0,
-                     q,
-                     push_count,
-                     pop_count,
-                     result_mutex,
-                     results,
-                     print_mutex,
-                     completed_producer,
-                     completed_consumer);
+    SchedulerParams tmp_param(0,
+                              q,
+                              push_count,
+                              pop_count,
+                              result_mutex,
+                              results,
+                              print_mutex,
+                              completed_producer,
+                              completed_consumer);
 
     // 启动所有线程
     for (int i = 0; i < NUM_PRODUCERS; ++i)
-        Scheduler::inst.coroutine_create(&producer, new Params(i, tmp_param));
+        Scheduler::inst.coroutine_create(&producer, new SchedulerParams(i, tmp_param));
     for (int i = 0; i < NUM_CONSUMERS; ++i) {
-        logf("consumer %d\n", i);
-        Params *p = new Params(i, tmp_param);
+        SchedulerParams *p = new SchedulerParams(i, tmp_param);
         Scheduler::inst.coroutine_create(&consumer, p);
     }
 
@@ -162,5 +159,4 @@ TEST(SchedulerTest, CoroutineTest)
     EXPECT_EQ(push_count.load(), ITEMS_PER_PRODUCER * NUM_PRODUCERS);
     EXPECT_EQ(pop_count.load(), ITEMS_PER_PRODUCER * NUM_PRODUCERS);
     EXPECT_EQ(results.size(), ITEMS_PER_PRODUCER * NUM_PRODUCERS);
-	*/
 }

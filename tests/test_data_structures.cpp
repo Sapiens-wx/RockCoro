@@ -12,10 +12,10 @@
 
 using namespace rockcoro;
 
-constexpr const int NUM_WORKERS = 10, ITEMS_PER_WORKER = 100;
+constexpr const int NUM_WORKERS = 100, ITEMS_PER_WORKER = 100;
 constexpr const int NUM_PUSH_PER_ITEM = 10;
 
-struct Params {
+struct TLLinkListParams {
     int id;
     TLLinkedList<Coroutine> &list;
 
@@ -26,14 +26,14 @@ struct Params {
 
     int *completed_consumer;
 
-    Params(int id,
-           TLLinkedList<Coroutine> &list,
-           std::atomic<int> &pop_count,
-           std::mutex &co_push_count_mutex,
-           std::mutex &co_pop_count_mutex,
-           std::unordered_map<Coroutine *, int> &co_push_count,
-           std::unordered_map<Coroutine *, int> &co_pop_count,
-           int *completed_consumer)
+    TLLinkListParams(int id,
+                     TLLinkedList<Coroutine> &list,
+                     std::atomic<int> &pop_count,
+                     std::mutex &co_push_count_mutex,
+                     std::mutex &co_pop_count_mutex,
+                     std::unordered_map<Coroutine *, int> &co_push_count,
+                     std::unordered_map<Coroutine *, int> &co_pop_count,
+                     int *completed_consumer)
         : id(id)
         , list(list)
         , pop_count(pop_count)
@@ -44,7 +44,7 @@ struct Params {
         , completed_consumer(completed_consumer)
     {
     }
-    Params(int id, const Params &tmp)
+    TLLinkListParams(int id, const TLLinkListParams &tmp)
         : id(id)
         , list(tmp.list)
         , pop_count(tmp.pop_count)
@@ -59,14 +59,15 @@ struct Params {
 
 static void tl_linked_list_worker(void *args)
 {
-    Params *param = (Params *)args;
+    TLLinkListParams *param = (TLLinkListParams *)args;
     //TODO: set list
     TLLinkedList<Coroutine> *list = &param->list;
 
     // create list nodes to be added to the linked list
-    Coroutine *coroutines[ITEMS_PER_WORKER];
+    void *coroutines_mem = malloc(sizeof(Coroutine) * ITEMS_PER_WORKER);
+    Coroutine *coroutines = (Coroutine *)coroutines_mem;
     for (int i = 0; i < ITEMS_PER_WORKER; ++i) {
-        coroutines[i] = new Coroutine(nullptr, nullptr);
+        new (coroutines + i) Coroutine(nullptr, nullptr);
     }
     int j = 0;
 
@@ -89,16 +90,17 @@ static void tl_linked_list_worker(void *args)
         }
         // push jobs in [pending_adds]
         if (j < ITEMS_PER_WORKER) {
-            list->push_back(&coroutines[j]->node);
+            list->push_back(&coroutines[j].node);
             std::lock_guard<std::mutex> lock(param->co_push_count_mutex);
-            param->co_push_count[coroutines[j]]++;
+            param->co_push_count[&coroutines[j]]++;
             ++j;
         }
     }
     //release coroutines
     for (int i = 0; i < ITEMS_PER_WORKER; ++i) {
-        delete coroutines[i];
+        coroutines[i].~Coroutine();
     }
+    free(coroutines_mem);
     param->completed_consumer[param->id] = 1;
     delete param;
 };
@@ -116,16 +118,16 @@ TEST(TLLinkedListTest, PushPopTest)
     memset(completed_consumer, 0, sizeof(completed_consumer));
 
     // param
-    Params tmp_param(0,
-                     list,
-                     pop_count,
-                     co_push_count_mutex,
-                     co_pop_count_mutex,
-                     co_push_count,
-                     co_pop_count,
-                     completed_consumer);
+    TLLinkListParams tmp_param(0,
+                               list,
+                               pop_count,
+                               co_push_count_mutex,
+                               co_pop_count_mutex,
+                               co_push_count,
+                               co_pop_count,
+                               completed_consumer);
     for (int i = 0; i < NUM_WORKERS; ++i) {
-        std::thread t(tl_linked_list_worker, (void *)(new Params(i, tmp_param)));
+        std::thread t(tl_linked_list_worker, (void *)(new TLLinkListParams(i, tmp_param)));
         t.detach();
     }
 
