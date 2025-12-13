@@ -2,7 +2,7 @@
 
 namespace rockcoro {
 
-Stack::Stack()
+void Stack::init()
 {
     stack_mem = new StackMem();
 }

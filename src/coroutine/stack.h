@@ -14,9 +14,10 @@ struct StackMem {
 };
 
 struct Stack {
-    StackMem *stack_mem;
+    StackMem *stack_mem = nullptr;
 
-    Stack();
+    // allocate stack memory
+    void init();
     ~Stack();
 };
 

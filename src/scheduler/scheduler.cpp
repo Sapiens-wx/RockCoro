@@ -94,6 +94,7 @@ void Scheduler::coroutine_swap(Coroutine *coroutine)
     } else // never started the coroutine. init the context
     {
         coroutine->started = true;
+        coroutine->stack.init();
         coroutine->ctx.init(*coroutine);
         ctx_entry_swap(old_coroutine, coroutine);
     }
