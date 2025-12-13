@@ -60,7 +60,7 @@ endif()
 
 if(ROCKCORO_BUILD_DEBUG)
 	message("Debug build: enable ASan and coverage")
-	target_compile_options(rockcoro PRIVATE -g -fprofile-arcs -ftest-coverage -fsanitize=address)
+	target_compile_options(rockcoro PRIVATE -g -O0 -fprofile-arcs -ftest-coverage -fsanitize=address)
 	target_link_options(rockcoro PRIVATE -fprofile-arcs -ftest-coverage -fsanitize=address)
 endif()
 

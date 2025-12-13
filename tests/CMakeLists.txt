@@ -2,7 +2,9 @@
 enable_testing()
 
 file(GLOB_RECURSE TEST_SOURCES
-     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/test_scheduler.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/test_data_structures.cpp
 )
 
 # 定义测试可执行文件
@@ -26,7 +28,7 @@ target_link_libraries(rockcoro_test
 
 # asan and coverage
 if(ROCKCORO_BUILD_DEBUG)
-	target_compile_options(rockcoro_test PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+	target_compile_options(rockcoro_test PRIVATE -g -O0 -fsanitize=address -fno-omit-frame-pointer)
 	target_link_options(rockcoro_test PRIVATE -fsanitize=address)
 endif()
 
