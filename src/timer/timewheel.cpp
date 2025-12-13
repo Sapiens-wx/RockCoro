@@ -61,7 +61,7 @@ void TimeWheel::tick()
         }
     else {
         while (TimeWheelLinkedListNode *node = cur_slot.pop_front()) {
-            Scheduler::inst.job_push(node->coroutine);
+            Scheduler::inst.job_push(node->coroutine, true);
         }
     }
     cur_slot_idx++;
@@ -125,7 +125,8 @@ void *TimerManager::event_loop(void *)
         // get current time
         clock_gettime(CLOCK_MONOTONIC, &cur_time);
         // if cur_time < next
-        if(cur_time.tv_sec<next.tv_sec || (cur_time.tv_sec==next.tv_sec && cur_time.tv_nsec<next.tv_nsec))
+        if (cur_time.tv_sec < next.tv_sec ||
+            (cur_time.tv_sec == next.tv_sec && cur_time.tv_nsec < next.tv_nsec))
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
     }
 }

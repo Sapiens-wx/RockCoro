@@ -3,7 +3,6 @@
 #include "scheduler.h"
 #include "timer/timewheel.h"
 
-
 namespace rockcoro {
 
 thread_local TLScheduler TLScheduler::inst;
@@ -26,7 +25,7 @@ TLScheduler::~TLScheduler()
 void TLScheduler::flush_pending_push()
 {
     if (pending_push) {
-        Scheduler::inst.job_push(pending_push);
+        Scheduler::inst.job_push(pending_push, false);
         pending_push = nullptr;
     }
 }

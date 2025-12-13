@@ -9,16 +9,18 @@ namespace rockcoro {
 
 static void *event_loop(void *)
 {
+    // if true, then means that the main loop yielded from a coroutine,
+    // so we will push the job without post_sem, and then poping the job without wait_sem,
+    // which is equivalent to post_self.
+    bool yield_from_coroutine = false;
     while (Scheduler::inst.running) {
-        Coroutine *job = Scheduler::inst.job_pop();
+        Coroutine *job = Scheduler::inst.job_pop(!yield_from_coroutine);
         if (job == nullptr) {
-            logf("get job=nullptr\n");
-            break;
-        }
-        while (job == nullptr) {
-            job = Scheduler::inst.job_pop();
+            logf("get job=nullptr, yield_from_coroutine=%d\n", (int)yield_from_coroutine);
+            continue;
         }
         Scheduler::inst.coroutine_swap(job);
+        yield_from_coroutine = TLScheduler::inst.pending_push != nullptr;
         TLScheduler::inst.flush_pending_push();
         TLScheduler::inst.flush_pending_destroy();
         TLScheduler::inst.flush_pending_add_event();
@@ -56,21 +58,25 @@ void Scheduler::destroy()
     sem_destroy(&sem_job_queue);
 }
 
-void Scheduler::job_push(Coroutine *coroutine)
+void Scheduler::job_push(Coroutine *coroutine, bool use_sem)
 {
     job_queue.push_back(&coroutine->node);
-    sem_post(&sem_job_queue);
+    //logf("push %p %d\n", coroutine, (int)use_sem);
+    if (use_sem)
+        sem_post(&sem_job_queue);
 }
-Coroutine *Scheduler::job_pop()
+Coroutine *Scheduler::job_pop(bool use_sem)
 {
-    sem_wait(&sem_job_queue);
+    if (use_sem)
+        sem_wait(&sem_job_queue);
     TLLinkedListNode<Coroutine> *node = job_queue.pop_front();
+    //logf("pop %p %d\n", (node == nullptr ? nullptr : node->value), (int)use_sem);
     return node == nullptr ? nullptr : node->value;
 }
 void Scheduler::coroutine_create(CoroutineFunc fn, void *args)
 {
     Coroutine *coroutine = new Coroutine(fn, args);
-    job_push(coroutine);
+    job_push(coroutine, true);
 }
 void Scheduler::coroutine_yield()
 {

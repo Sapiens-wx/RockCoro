@@ -5,7 +5,7 @@
 
 namespace rockcoro {
 
-#define SCHEDULER_NUM_WORKERS 2
+#define SCHEDULER_NUM_WORKERS 10
 struct Coroutine;
 
 typedef void (*CoroutineFunc)(void *);
@@ -27,9 +27,10 @@ struct Scheduler {
     ~Scheduler();
     void init();
     void destroy();
-    /// @brief gets the scheduler instance
-    void job_push(Coroutine *coroutine);
-    Coroutine *job_pop();
+    /// @brief pushes a job, and post_sem if use_sem==true
+    void job_push(Coroutine *coroutine, bool use_sem);
+    /// @brief (wait_sem if use_sem==true,) pops a job
+    Coroutine *job_pop(bool use_sem);
 
     // creates a new coroutine
     void coroutine_create(CoroutineFunc fn, void *args);
