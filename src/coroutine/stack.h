@@ -1,9 +1,8 @@
 #pragma once
 #include <cstddef>
+#include "config.h"
 
 namespace rockcoro {
-
-#define STACK_SIZE 1024 * 1024
 
 // a fix-sized buffer representing stack memory
 struct StackMem {

@@ -2,10 +2,10 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "basic_struct/data_structures.h"
+#include "config.h"
 
 namespace rockcoro {
 
-#define SCHEDULER_NUM_WORKERS 10
 struct Coroutine;
 
 typedef void (*CoroutineFunc)(void *);

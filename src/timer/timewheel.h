@@ -1,11 +1,8 @@
 #pragma once
 #include <pthread.h>
+#include "config.h"
 
 namespace rockcoro {
-
-#define TIMEWHEEL_INTERVAL_MS 1
-#define TIMEWHEEL_NUM_SLOTS_PER_WHEEL 60
-#define TIMEWHEEL_NUM_WHEELS 3
 
 struct Coroutine;
 
