@@ -1,13 +1,12 @@
 #include "log.h"
 #if DEBUG
 
-#include <atomic>
 #include <pthread.h>
 #include <stdio.h>
 
-namespace rockcoro {
+#include "thread_info.h"
 
-static std::atomic<int> _tid{0};
+namespace rockcoro {
 
 struct Logger {
     FILE *log_file;
@@ -31,14 +30,6 @@ struct Logger {
     }
 };
 
-struct LoggerTL {
-    int id;
-    LoggerTL()
-    {
-        id = _tid.fetch_add(1);
-    }
-};
-
 static Logger logger;
 static thread_local LoggerTL logger_tl;
 
@@ -47,7 +38,7 @@ void logf(const char *fmt, ...)
     char buffer[4096];
 
     // print out the thread id first
-    int id_length = snprintf(buffer, sizeof(buffer), "[%d] ", logger_tl.id);
+    int id_length = snprintf(buffer, sizeof(buffer), "[%d] ", ThreadInfo::inst.id);
 
     va_list args;
     va_start(args, fmt);
