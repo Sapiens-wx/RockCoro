@@ -6,7 +6,6 @@
 #include "scheduler.h"
 #include "scheduler/tl_scheduler.h"
 
-
 namespace rockcoro {
 
 // wrap the coroutine function with this handler function.
@@ -32,8 +31,7 @@ void CoroutineContext::init(Coroutine &coroutine)
     //   first param (also for return address. consider this memory block as a union{first param; return address})
     //   second param
     // ---buffer end---
-    char *sp =
-        coroutine.stack.stack_mem->buffer + coroutine.stack.stack_mem->size - sizeof(void *) * 3;
+    char *sp = coroutine.stack.stack_mem + coroutine.stack.size - sizeof(void *) * 3;
     *(void **)(sp) = (void *)&coroutine_entry_function;   // return address
     *(void **)(sp + sizeof(void *)) = &coroutine;         // first param
     *(void **)(sp + sizeof(void *) * 2) = coroutine.args; // second param

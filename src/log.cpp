@@ -31,7 +31,6 @@ struct Logger {
 };
 
 static Logger logger;
-static thread_local LoggerTL logger_tl;
 
 void logf(const char *fmt, ...)
 {
