@@ -17,7 +17,7 @@ constexpr const int NUM_PUSH_PER_ITEM = 10;
 
 struct TLLinkListParams {
     int id;
-    TLLinkedList<Coroutine> &list;
+    TSLinkedList &list;
 
     std::atomic<int> &pop_count;
 
@@ -27,7 +27,7 @@ struct TLLinkListParams {
     int *completed_consumer;
 
     TLLinkListParams(int id,
-                     TLLinkedList<Coroutine> &list,
+                     TSLinkedList &list,
                      std::atomic<int> &pop_count,
                      std::mutex &co_push_count_mutex,
                      std::mutex &co_pop_count_mutex,
@@ -61,7 +61,7 @@ static void tl_linked_list_worker(void *args)
 {
     TLLinkListParams *param = (TLLinkListParams *)args;
     //TODO: set list
-    TLLinkedList<Coroutine> *list = &param->list;
+    TSLinkedList *list = &param->list;
 
     // create list nodes to be added to the linked list
     void *coroutines_mem = malloc(sizeof(Coroutine) * ITEMS_PER_WORKER);
@@ -72,9 +72,9 @@ static void tl_linked_list_worker(void *args)
     int j = 0;
 
     while (param->pop_count.load() < NUM_WORKERS * ITEMS_PER_WORKER * NUM_PUSH_PER_ITEM) {
-        TLLinkedListNode<Coroutine> *frontNode = list->pop_front();
+        TSLinkedListNode *frontNode = list->pop_front();
         if (frontNode) {
-            Coroutine *front = frontNode->value;
+            Coroutine *front = (Coroutine *)frontNode->value;
             param->pop_count++;
             param->co_pop_count_mutex.lock();
             param->co_pop_count[front]++;
@@ -105,9 +105,9 @@ static void tl_linked_list_worker(void *args)
     delete param;
 };
 
-TEST(TLLinkedListTest, PushPopTest)
+TEST(TSLinkedListTest, PushPopTest)
 {
-    TLLinkedList<Coroutine> list;
+    TSLinkedList list;
     std::atomic<int> pop_count{0};
 
     std::mutex co_push_count_mutex, co_pop_count_mutex;

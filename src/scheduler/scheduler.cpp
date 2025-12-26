@@ -68,9 +68,9 @@ Coroutine *Scheduler::job_pop(bool use_sem)
 {
     if (use_sem)
         sem_wait(&sem_job_queue);
-    TLLinkedListNode<Coroutine> *node = job_queue.pop_front();
+    TSLinkedListNode *node = job_queue.pop_front();
     //logf("pop %p %d\n", (node == nullptr ? nullptr : node->value), (int)use_sem);
-    return node == nullptr ? nullptr : node->value;
+    return node == nullptr ? nullptr : (Coroutine *)node->value;
 }
 void Scheduler::coroutine_create(CoroutineFunc fn, void *args)
 {
