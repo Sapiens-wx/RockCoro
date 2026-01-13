@@ -20,7 +20,7 @@ static void coroutine_entry_function(Coroutine *coroutine, void *args)
     TLScheduler &tl_scheduler = TLScheduler::inst;
     tl_scheduler.pending_destroy = coroutine;
     // return to the main coroutine (event loop)
-    Scheduler::inst.coroutine_exit_swap(tl_scheduler.main_coroutine);
+    Scheduler::inst.coroutine_exit_swap(&tl_scheduler.main_coroutine);
 }
 
 void CoroutineContext::init(Coroutine &coroutine)

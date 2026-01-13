@@ -20,8 +20,6 @@ struct Coroutine {
     // args the parameters of fn
     void *args = nullptr;
 
-    // the node used when this coroutine is pushed or poped from a TLLinkedList
-    TSLinkedListNode node;
     // the node used when this coroutine is added to the time wheel
     TimeWheelLinkedListNode timewheel_node;
 

@@ -11,7 +11,7 @@
 
 using namespace rockcoro;
 
-constexpr const int NUM_CONSUMERS = 100, NUM_PRODUCERS = 100;
+constexpr const int NUM_CONSUMERS = 1000, NUM_PRODUCERS = 1000;
 constexpr const int ITEMS_PER_PRODUCER = 100;
 
 struct SchedulerParams {

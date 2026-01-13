@@ -8,29 +8,23 @@
 
 namespace rockcoro {
 
-struct Logger {
-    FILE *log_file;
-    pthread_mutex_t mutex_log;
-    Logger()
-    {
-        const char path[] = "./log";
-        log_file = std::fopen(path, "w");
-        if (!log_file) {
-            printf("ERROR: Failed to open thread log file");
-        }
-        // init mutex
-        pthread_mutex_init(&mutex_log, nullptr);
+Logger::Logger()
+{
+    const char path[] = "./log";
+    log_file = std::fopen(path, "w");
+    if (!log_file) {
+        printf("ERROR: Failed to open thread log file");
     }
-    ~Logger()
-    {
-        if (log_file) {
-            fclose(log_file);
-        }
-        pthread_mutex_destroy(&mutex_log);
+    // init mutex
+    pthread_mutex_init(&mutex_log, nullptr);
+}
+Logger::~Logger()
+{
+    if (log_file) {
+        fclose(log_file);
     }
-};
-
-static Logger logger;
+    pthread_mutex_destroy(&mutex_log);
+}
 
 void logf(const char *fmt, ...)
 {
@@ -45,11 +39,11 @@ void logf(const char *fmt, ...)
     va_end(args);
 
     if (n > 0) {
-        pthread_mutex_lock(&logger.mutex_log);
-        fwrite(buffer, 1, n, logger.log_file);
+        pthread_mutex_lock(&Logger::inst.mutex_log);
+        fwrite(buffer, 1, n, Logger::inst.log_file);
         printf("%s", buffer);
-        fflush(logger.log_file);
-        pthread_mutex_unlock(&logger.mutex_log);
+        fflush(Logger::inst.log_file);
+        pthread_mutex_unlock(&Logger::inst.mutex_log);
     }
 }
 

@@ -3,6 +3,7 @@
 #include <atomic>
 #include <pthread.h>
 #include <stddef.h>
+#include <stdexcept>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,113 +23,99 @@ struct CoroError {
     }
 };
 
-template <typename T> class Deque {
+template <typename T, size_t BUFFER_SIZE> class Deque {
 private:
-    struct Node {
-        T data;
-        Node *prev = nullptr;
-        Node *next = nullptr;
-        Node(const T &val)
-            : data(val)
-        {
-        }
-    };
+    T data[BUFFER_SIZE];
+    size_t head = 0;  // 指向第一个元素
+    size_t count = 0; // 当前元素个数
 
-    Node *head;
-    Node *tail;
-    size_t count;
+    size_t index(size_t i) const
+    {
+        return (head + i) % BUFFER_SIZE;
+    }
 
 public:
-    Deque()
-        : head(nullptr)
-        , tail(nullptr)
-        , count(0)
-    {
-    }
-
-    ~Deque()
-    {
-        while (!empty())
-            pop_front();
-    }
-
-    inline bool empty() const
+    bool empty() const
     {
         return count == 0;
     }
-    inline size_t size() const
+    bool full() const
+    {
+        return count == BUFFER_SIZE;
+    }
+    constexpr size_t capacity() const
+    {
+        return BUFFER_SIZE;
+    }
+    size_t size() const
     {
         return count;
     }
 
-    // 插入到头部
-    void push_front(const T &val)
+    /* push_back */
+    void push_back(const T &value)
     {
-        Node *node = new Node(val);
-        node->next = head;
-        if (head)
-            head->prev = node;
-        head = node;
-        if (!tail)
-            tail = head; // 第一个节点
-        count++;
+        if (full())
+            throw std::overflow_error("Deque full");
+
+        data[index(count)] = value;
+        ++count;
     }
 
-    // 插入到尾部
-    void push_back(const T &val)
+    /* push_front */
+    void push_front(const T &value)
     {
-        Node *node = new Node(val);
-        node->prev = tail;
-        if (tail)
-            tail->next = node;
-        tail = node;
-        if (!head)
-            head = tail; // 第一个节点
-        count++;
+        if (full())
+            throw std::overflow_error("Deque full");
+
+        head = (head + BUFFER_SIZE - 1) % BUFFER_SIZE;
+        data[head] = value;
+        ++count;
     }
 
-    // 删除头部
-    void pop_front()
-    {
-        if (empty())
-            throw CoroError("pop_front from empty deque");
-        Node *tmp = head;
-        head = head->next;
-        if (head)
-            head->prev = nullptr;
-        else
-            tail = nullptr;
-        delete tmp;
-        count--;
-    }
-
-    // 删除尾部
+    /* pop_back */
     void pop_back()
     {
         if (empty())
-            throw CoroError("pop_back from empty deque");
-        Node *tmp = tail;
-        tail = tail->prev;
-        if (tail)
-            tail->next = nullptr;
-        else
-            head = nullptr;
-        delete tmp;
-        count--;
+            throw std::underflow_error("Deque empty");
+
+        --count;
+        // 不需要真的销毁，逻辑上移除即可
     }
 
+    /* pop_front */
+    void pop_front()
+    {
+        if (empty())
+            throw std::underflow_error("Deque empty");
+
+        head = (head + 1) % BUFFER_SIZE;
+        --count;
+    }
+
+    /* 访问 */
     T &front()
     {
         if (empty())
-            throw CoroError("front from empty deque");
-        return head->data;
+            throw std::underflow_error("Deque empty");
+        return data[head];
+    }
+
+    const T &front() const
+    {
+        return data[head];
     }
 
     T &back()
     {
         if (empty())
-            throw CoroError("back from empty deque");
-        return tail->data;
+            throw std::underflow_error("Deque empty");
+        return data[index(count - 1)];
+    }
+
+    const T &back() const
+    {
+        return data[index(count - 1)];
     }
 };
 
@@ -219,24 +206,6 @@ template <typename T> struct LinkedList {
     LinkedListNode<T> *pop_front();
     void push_front(LinkedListNode<T> *node);
     void push_back(LinkedListNode<T> *node);
-};
-
-//thread safe linked list node
-struct TSLinkedListNode {
-    std::atomic<TSLinkedListNode *> next;
-    void *value;
-
-    TSLinkedListNode(void *value);
-};
-
-//thread safe linked list. can be used only by scheduler
-struct TSLinkedList {
-    std::atomic<TSLinkedListNode *> head = nullptr;
-    std::atomic<TSLinkedListNode *> tail = nullptr;
-
-    // pop an element from head. returns nullptr if empty
-    TSLinkedListNode *pop_front();
-    void push_back(TSLinkedListNode *node);
 };
 
 /// @brief Chase-Lev Deque
@@ -467,5 +436,327 @@ template <typename T> void LinkedList<T>::push_front(LinkedListNode<T> *node)
     if (tail == nullptr)
         tail = head;
 }
+
+template <typename T, size_t CAPACITY = 64> class Vector {
+public:
+    Vector()
+        : data_(allocate(CAPACITY))
+        , size_(0)
+        , capacity_(CAPACITY)
+    {
+    }
+
+    explicit Vector(size_t n)
+        : data_(allocate(n))
+        , size_(n)
+        , capacity_(n)
+    {
+        for (size_t i = 0; i < n; ++i)
+            new (data_ + i) T();
+    }
+
+    ~Vector()
+    {
+        destroy_all();
+        operator delete(data_);
+    }
+
+    Vector(const Vector &other)
+        : data_(allocate(other.capacity_))
+        , size_(other.size_)
+        , capacity_(other.capacity_)
+    {
+        for (size_t i = 0; i < size_; ++i)
+            new (data_ + i) T(other.data_[i]);
+    }
+
+    Vector &operator=(const Vector &other)
+    {
+        if (this == &other)
+            return *this;
+
+        destroy_all();
+        operator delete(data_);
+
+        data_ = allocate(other.capacity_);
+        size_ = other.size_;
+        capacity_ = other.capacity_;
+
+        for (size_t i = 0; i < size_; ++i)
+            new (data_ + i) T(other.data_[i]);
+
+        return *this;
+    }
+
+    Vector(Vector &&other) noexcept
+        : data_(other.data_)
+        , size_(other.size_)
+        , capacity_(other.capacity_)
+    {
+        other.data_ = nullptr;
+        other.size_ = 0;
+        other.capacity_ = 0;
+    }
+
+    Vector &operator=(Vector &&other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        destroy_all();
+        operator delete(data_);
+
+        data_ = other.data_;
+        size_ = other.size_;
+        capacity_ = other.capacity_;
+
+        other.data_ = nullptr;
+        other.size_ = 0;
+        other.capacity_ = 0;
+
+        return *this;
+    }
+
+    T &operator[](size_t i)
+    {
+        assert(i < size_);
+        return data_[i];
+    }
+
+    const T &operator[](size_t i) const
+    {
+        assert(i < size_);
+        return data_[i];
+    }
+
+    // ---------- 容量 ----------
+    size_t size() const
+    {
+        return size_;
+    }
+    size_t capacity() const
+    {
+        return capacity_;
+    }
+    bool empty() const
+    {
+        return size_ == 0;
+    }
+
+    void push_back(const T &value)
+    {
+        ensure_capacity(size_ + 1);
+        new (data_ + size_) T(value);
+        ++size_;
+    }
+
+    void push_back(T &&value)
+    {
+        ensure_capacity(size_ + 1);
+        new (data_ + size_) T(std::move(value));
+        ++size_;
+    }
+
+    template <typename... Args> T &emplace_back(Args &&...args)
+    {
+        ensure_capacity(size_ + 1);
+        new (data_ + size_) T(std::forward<Args>(args)...);
+        return data_[size_++];
+    }
+
+    void pop_back()
+    {
+        assert(size_ > 0);
+        data_[--size_].~T();
+    }
+
+    void clear()
+    {
+        destroy_all();
+        size_ = 0;
+    }
+
+private:
+    T *data_;
+    size_t size_;
+    size_t capacity_;
+
+    static T *allocate(size_t n)
+    {
+        if (n == 0)
+            return nullptr;
+        return static_cast<T *>(operator new(sizeof(T) * n));
+    }
+
+    void destroy_all()
+    {
+        for (size_t i = 0; i < size_; ++i)
+            data_[i].~T();
+    }
+
+    void ensure_capacity(size_t min_cap)
+    {
+        if (min_cap <= capacity_)
+            return;
+
+        size_t new_cap = capacity_ == 0 ? 1 : capacity_ * 2;
+        if (new_cap < min_cap)
+            new_cap = min_cap;
+
+        T *new_data = allocate(new_cap);
+
+        // 移动构造
+        for (size_t i = 0; i < size_; ++i)
+            new (new_data + i) T(std::move(data_[i]));
+
+        destroy_all();
+        operator delete(data_);
+
+        data_ = new_data;
+        capacity_ = new_cap;
+    }
+};
+
+template <typename T, size_t CAPACITY> class Array {
+public:
+    Array()
+        : size_(0)
+    {
+    }
+
+    explicit Array(size_t n)
+        : size_(n)
+    {
+        assert(n <= CAPACITY);
+        for (size_t i = 0; i < n; ++i)
+            new (data_ + i) T();
+    }
+
+    ~Array()
+    {
+        destroy_all();
+    }
+
+    Array(const Array &other)
+        : size_(other.size_)
+    {
+        for (size_t i = 0; i < size_; ++i)
+            new (data_ + i) T(other.data_[i]);
+    }
+
+    Array &operator=(const Array &other)
+    {
+        if (this == &other)
+            return *this;
+
+        destroy_all();
+        size_ = other.size_;
+
+        for (size_t i = 0; i < size_; ++i)
+            new (data_ + i) T(other.data_[i]);
+
+        return *this;
+    }
+
+    Array(Array &&other) noexcept
+        : size_(other.size_)
+    {
+        for (size_t i = 0; i < size_; ++i)
+            new (data_ + i) T(std::move(other.data_[i]));
+
+        other.destroy_all();
+        other.size_ = 0;
+    }
+
+    Array &operator=(Array &&other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        destroy_all();
+        size_ = other.size_;
+
+        for (size_t i = 0; i < size_; ++i)
+            new (data_ + i) T(std::move(other.data_[i]));
+
+        other.destroy_all();
+        other.size_ = 0;
+
+        return *this;
+    }
+
+    T &operator[](size_t i)
+    {
+        assert(i < size_);
+        return data_[i];
+    }
+
+    const T &operator[](size_t i) const
+    {
+        assert(i < size_);
+        return data_[i];
+    }
+
+    // ---------- 容量 ----------
+    size_t size() const
+    {
+        return size_;
+    }
+
+    constexpr size_t capacity() const
+    {
+        return CAPACITY;
+    }
+
+    bool empty() const
+    {
+        return size_ == 0;
+    }
+
+    // ---------- 修改 ----------
+    void push_back(const T &value)
+    {
+        assert(size_ < CAPACITY);
+        new (data_ + size_) T(value);
+        ++size_;
+    }
+
+    void push_back(T &&value)
+    {
+        assert(size_ < CAPACITY);
+        new (data_ + size_) T(std::move(value));
+        ++size_;
+    }
+
+    template <typename... Args> T &emplace_back(Args &&...args)
+    {
+        assert(size_ < CAPACITY);
+        new (data_ + size_) T(std::forward<Args>(args)...);
+        return data_[size_++];
+    }
+
+    void pop_back()
+    {
+        assert(size_ > 0);
+        data_[--size_].~T();
+    }
+
+    void clear()
+    {
+        destroy_all();
+        size_ = 0;
+    }
+
+private:
+    alignas(T) unsigned char buffer_[sizeof(T) * CAPACITY];
+    T *data_ = reinterpret_cast<T *>(buffer_);
+    size_t size_;
+
+    void destroy_all()
+    {
+        for (size_t i = 0; i < size_; ++i)
+            data_[i].~T();
+    }
+};
 
 } // namespace rockcoro

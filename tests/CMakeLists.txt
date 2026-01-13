@@ -3,7 +3,7 @@ enable_testing()
 
 file(GLOB_RECURSE TEST_SOURCES
      ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp
-     ${CMAKE_CURRENT_SOURCE_DIR}/test_stack.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/test_data_structures.cpp
 )
 
 # 定义测试可执行文件

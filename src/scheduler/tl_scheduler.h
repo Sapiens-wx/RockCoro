@@ -1,15 +1,14 @@
 #pragma once
+#include "coroutine/coroutine.h"
 
 namespace rockcoro {
-
-struct Coroutine;
 
 struct TLScheduler {
     static thread_local TLScheduler inst;
     // current coroutine this thread is running on
     Coroutine *cur_coroutine = nullptr;
     // the event loop.
-    Coroutine *main_coroutine = nullptr;
+    Coroutine main_coroutine = {nullptr, nullptr};
     // the coroutine that called yield. A coroutine has to be pushed to job_queue after it returns to the main coroutine.
     Coroutine *pending_push = nullptr;
     // the coroutine that has terminated. Destroy the coroutine instance after the coroutine returns.

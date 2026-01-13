@@ -1,8 +1,8 @@
 #pragma once
 #include <pthread.h>
 #include <semaphore.h>
-#include "basic_struct/data_structures.h"
 #include "config.h"
+#include "memory/ts_linked_list.h"
 
 namespace rockcoro {
 

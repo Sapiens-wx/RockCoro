@@ -106,7 +106,7 @@ void *TimerManager::event_loop(void *)
     struct timespec next, cur_time;
     clock_gettime(CLOCK_MONOTONIC, &next);
 
-    while (true) {
+    while (Scheduler::inst.running) {
         // add pending events
         while (TimeWheelLinkedListNode *pending_event = TimerManager::inst.pop_pending_event()) {
             TimerManager::inst.internal_add_event(pending_event->coroutine);
@@ -129,6 +129,7 @@ void *TimerManager::event_loop(void *)
             (cur_time.tv_sec == next.tv_sec && cur_time.tv_nsec < next.tv_nsec))
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
     }
+    return nullptr;
 }
 
 void TimerManager::add_event(Coroutine *coroutine, int delayMS)

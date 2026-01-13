@@ -9,9 +9,8 @@ thread_local TLScheduler TLScheduler::inst;
 
 TLScheduler::TLScheduler()
 {
-    main_coroutine = new Coroutine(nullptr, nullptr);
-    main_coroutine->started = true;
-    cur_coroutine = main_coroutine;
+    main_coroutine.started = true;
+    cur_coroutine = &main_coroutine;
 }
 
 TLScheduler::~TLScheduler()
@@ -19,7 +18,6 @@ TLScheduler::~TLScheduler()
     if (pending_destroy) {
         delete pending_destroy;
     }
-    delete main_coroutine;
 }
 
 void TLScheduler::flush_pending_push()

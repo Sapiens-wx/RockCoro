@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <thread>
+#include "log.h"
 #include "scheduler.h"
+
 
 using namespace rockcoro;
 
