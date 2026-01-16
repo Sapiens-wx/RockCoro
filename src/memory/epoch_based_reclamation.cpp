@@ -1,19 +1,28 @@
 #include "memory/epoch_based_reclamation.h"
 #include <cstdlib>
-#include <thread>
 #include "memory/ts_linked_list.h"
 
 namespace rockcoro {
 
-#define GET_EPOCH_INDEX(epoch) ((epoch) % EBR_RING_BUFFER_LENGTH)
+// epoch: current epoch
+// active: true or false; whether the thread is in an epoch
+#define GET_EPOCH_STATUS(epoch, active)                                                            \
+    ((epoch) & ((active) ? 0xFFFFFFFFFFFFFFFF : 0x7FFFFFFFFFFFFFFF))
 
-thread_local int thread_epoch_index = -1;
+thread_local int thread_epoch_index = 0;
 
-/*static void chaos_yield()
+static void *epoch_maintainer(void *)
 {
-    if (rand() % 7 == 0)
-        std::this_thread::yield();
-}*/
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = EBR_ADVANCE_EPOCH_INTERVAL_MS * 1000 * 1000; // 20ms
+
+    while (EpochBasedReclamation::inst.is_running.load()) {
+        EpochBasedReclamation::inst.advance_epoch();
+        nanosleep(&ts, NULL);
+    }
+    return nullptr;
+}
 
 int EpochBasedReclamation::get_thread_epoch_index()
 {
@@ -22,90 +31,77 @@ int EpochBasedReclamation::get_thread_epoch_index()
 
 void EpochBasedReclamation::init()
 {
-    for (int i = 0; i < EBR_RING_BUFFER_LENGTH; ++i) {
-        thread_count_in_epoch[i].store(0);
-    }
+    pthread_create(
+        &epoch_maintainer_thread, nullptr, (void *(*)(void *)) & epoch_maintainer, nullptr);
 }
 void EpochBasedReclamation::destroy()
 {
     int thread_epochs_count_tmp = thread_epochs_count.load();
     for (int i = 0; i < thread_epochs_count_tmp; ++i) {
         ThreadEpoch &thread_epoch = thread_epochs[i];
-        for (int i = 0; i < EBR_RING_BUFFER_LENGTH; ++i) {
-            auto &retire_list = thread_epoch.retire_list[i];
-            for (int j = retire_list.size() - 1; j >= 0; --j) {
-                TSLinkedListNodeAllocator::inst.release((TSLinkedListNode *)retire_list[j]);
-            }
-            retire_list.clear();
+        auto &retire_list = thread_epoch.retire_list;
+        while (retire_list.size()) {
+            TSLinkedListNodeAllocator::inst.release(retire_list.front().ptr);
+            retire_list.pop_front();
         }
     }
+    is_running.store(false);
+    pthread_join(epoch_maintainer_thread, nullptr);
 }
 
 void EpochBasedReclamation::init_thread_epoch()
 {
     thread_epoch_index = thread_epochs_count.fetch_add(1);
+    thread_epochs[thread_epoch_index].epoch_status.store(0);
     assert(thread_epoch_index < EBR_MAX_THREADS);
 }
 
 void EpochBasedReclamation::enter_epoch()
 {
     ThreadEpoch &thread_epoch = thread_epochs[thread_epoch_index];
-    thread_epoch.active.store(true);
-    int prev_epoch = -1;
-    int cur_epoch = global_epoch.load(std::memory_order_acquire);
+    uint64_t old_local_epoch = thread_epoch.epoch_status.load();
+    uint64_t new_local_epoch;
     do {
-        if (prev_epoch != -1)
-            thread_count_in_epoch[GET_EPOCH_INDEX(prev_epoch)].fetch_sub(1);
-        thread_epoch.epoch.store(cur_epoch);
-        thread_count_in_epoch[GET_EPOCH_INDEX(cur_epoch)].fetch_add(1);
-        prev_epoch = cur_epoch;
-    } while (!global_epoch.compare_exchange_weak(cur_epoch, cur_epoch));
+        new_local_epoch = GET_EPOCH_STATUS(global_epoch.load(), true);
+    } while (!thread_epoch.epoch_status.compare_exchange_weak(old_local_epoch, new_local_epoch));
 }
 void EpochBasedReclamation::exit_epoch()
 {
     ThreadEpoch &thread_epoch = thread_epochs[thread_epoch_index];
-    thread_epoch.active.store(false);
-    thread_count_in_epoch[GET_EPOCH_INDEX(thread_epoch.epoch.load())].fetch_sub(1);
-    try_advance_epoch();
+    uint64_t old_local_epoch = thread_epoch.epoch_status.load();
+    while (!thread_epoch.epoch_status.compare_exchange_weak(
+        old_local_epoch, GET_EPOCH_STATUS(old_local_epoch, false)))
+        ;
+    // reclaim (GC)
+    auto &retire_list = thread_epoch.retire_list;
+    uint64_t cur_gc_epoch = gc_epoch.load();
+    while (retire_list.size() && retire_list.front().retire_epoch <= cur_gc_epoch) {
+        TSLinkedListNodeAllocator::inst.release(retire_list.front().ptr);
+        retire_list.pop_front();
+    }
 }
 void EpochBasedReclamation::retire(TSLinkedListNode *ptr)
 {
     assert(thread_epoch_index >= 0);
     ThreadEpoch &thread_epoch = thread_epochs[thread_epoch_index];
-    thread_epoch.retire_list[GET_EPOCH_INDEX(thread_epoch.epoch.load())].push_back(ptr);
+    uint64_t cur_epoch = GET_EPOCH_STATUS(thread_epoch.epoch_status.load(), false);
+    thread_epoch.retire_list.push_back({ptr, cur_epoch});
 }
-void EpochBasedReclamation::try_advance_epoch()
+void EpochBasedReclamation::advance_epoch()
 {
-    bool b_is_advancing_epoch = is_advancing_epoch.load();
-    if (!b_is_advancing_epoch &&
-        is_advancing_epoch.compare_exchange_strong(b_is_advancing_epoch, true)) {
-        int last_epoch = global_epoch.load() - 1 + EBR_RING_BUFFER_LENGTH;
-        // check all the counts in ring buffer (except current epoch)
-        // if there is an epoch whose thread_count>0, then we cannot advance epoch
-        for (int i = last_epoch + 2; i < last_epoch + 1 + EBR_RING_BUFFER_LENGTH; ++i) {
-            if (thread_count_in_epoch[GET_EPOCH_INDEX(i)].load() > 0) {
-                is_advancing_epoch.store(false);
-                return;
-            }
+    uint64_t min_epoch = global_epoch.load();
+    global_epoch.fetch_add(1);
+    uint64_t cur_glb_epoch = global_epoch.load();
+    for (int i = thread_epochs_count.load() - 1; i >= 0; --i) {
+        ThreadEpoch &thread_epoch = thread_epochs[i];
+        uint64_t old_local_epoch = GET_EPOCH_STATUS(thread_epoch.epoch_status.load(), false);
+        if (!thread_epoch.epoch_status.compare_exchange_strong(old_local_epoch, cur_glb_epoch)) {
+            old_local_epoch = GET_EPOCH_STATUS(old_local_epoch, false);
+            if (min_epoch > old_local_epoch)
+                min_epoch = old_local_epoch;
         }
-
-        int thread_epochs_count_tmp = thread_epochs_count.load();
-        int epoch_index = GET_EPOCH_INDEX(last_epoch);
-        int ptr_release_count = 0;
-        for (int i = 0; i < thread_epochs_count_tmp; ++i) {
-            ThreadEpoch &thread_epoch = thread_epochs[i];
-            auto &retire_list = thread_epoch.retire_list[epoch_index];
-            for (int j = 0; (size_t)j < retire_list.size(); ++j) {
-                // free retire_list[i]
-                assert(((TSLinkedListNode *)retire_list[j])->used_by_thread_epoch.load() == -1);
-                TSLinkedListNodeAllocator::inst.release((TSLinkedListNode *)retire_list[j]);
-                ++ptr_release_count;
-            }
-            retire_list.clear();
-        }
-        global_epoch.fetch_add(1);
-        is_advancing_epoch.store(false);
     }
+    gc_epoch.store(min_epoch - 1);
 }
 
 } // namespace rockcoro

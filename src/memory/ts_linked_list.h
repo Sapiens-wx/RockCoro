@@ -21,6 +21,8 @@ struct TSLinkedListNodeAllocator {
     void destroy();
     TSLinkedListNode *get();
     void release(TSLinkedListNode *node);
+    //debug functions
+    int get_new_count();
 };
 
 //thread safe linked list. can be used only by scheduler

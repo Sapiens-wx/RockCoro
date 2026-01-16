@@ -4,11 +4,7 @@
 #include "memory/epoch_based_reclamation.h"
 
 namespace rockcoro {
-/*static void chaos_yield()
-{
-    if (rand() % 7 == 0)
-        std::this_thread::yield();
-}*/
+
 TSLinkedListNode::TSLinkedListNode(void *value)
     : value(value)
 {
@@ -95,15 +91,19 @@ void TSLinkedListNodeAllocator::init()
 {
 }
 
+std::atomic<uint64_t> new_count{0};
 void TSLinkedListNodeAllocator::destroy()
 {
     TSLinkedListNode *cur = head.load();
     head.store(nullptr);
+    uint64_t delete_count = 0;
     for (; cur != nullptr;) {
         TSLinkedListNode *next = cur->next.load();
         delete cur;
         cur = next;
+        ++delete_count;
     }
+    logf("delete_count=%llu, new_count=%llu\n", delete_count, new_count.load());
 }
 
 TSLinkedListNode *TSLinkedListNodeAllocator::get()
@@ -112,6 +112,7 @@ TSLinkedListNode *TSLinkedListNodeAllocator::get()
     do {
         if (first == nullptr) {
             TSLinkedListNode *ret = new TSLinkedListNode(nullptr);
+            new_count.fetch_add(1, std::memory_order_relaxed);
             return ret;
         }
         //if (first == nullptr)
@@ -130,6 +131,11 @@ void TSLinkedListNodeAllocator::release(TSLinkedListNode *node)
         node->next.store(first);
         assert(node != first); //make sure not self-loop
     } while (!head.compare_exchange_weak(first, node));
+}
+
+int TSLinkedListNodeAllocator::get_new_count()
+{
+    return new_count.load();
 }
 
 } // namespace rockcoro

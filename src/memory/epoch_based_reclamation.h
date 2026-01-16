@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <pthread.h>
 #include "basic_struct/data_structures.h"
 #include "config.h"
 
@@ -7,22 +8,27 @@ namespace rockcoro {
 
 struct TSLinkedListNode;
 
+struct RetireRecord {
+    TSLinkedListNode *ptr;
+    uint64_t retire_epoch;
+};
+
 struct ThreadEpoch {
-    std::atomic<int> epoch;
-    // is this thread in an epoch
-    std::atomic<bool> active;
-    Vector<void *> retire_list[EBR_RING_BUFFER_LENGTH];
+    // stores both active/inactive status and epoch index
+    // | 1 bit: active/inactive | 63 bits: epoch index |
+    std::atomic<uint64_t> epoch_status = {0};
+    Deque<RetireRecord> retire_list;
 };
 
 // epoch based reclamation
 struct EpochBasedReclamation {
     static EpochBasedReclamation inst;
-    std::atomic<int> global_epoch = 0;
+    std::atomic<uint64_t> global_epoch = 1;
+    std::atomic<uint64_t> gc_epoch = 0;
     ThreadEpoch thread_epochs[EBR_MAX_THREADS];
     std::atomic<int> thread_epochs_count = 0;
-    // number of threads active in each epoch
-    std::atomic<int> thread_count_in_epoch[EBR_RING_BUFFER_LENGTH];
-    std::atomic<bool> is_advancing_epoch = false;
+    std::atomic<bool> is_running = true;
+    pthread_t epoch_maintainer_thread;
 
     void init();
     void destroy();
@@ -33,9 +39,7 @@ struct EpochBasedReclamation {
     void exit_epoch();
     void retire(TSLinkedListNode *ptr);
     int get_thread_epoch_index();
-
-private:
-    void try_advance_epoch();
+    void advance_epoch();
 };
 
 } // namespace rockcoro
