@@ -7,7 +7,7 @@ namespace rockcoro {
 // epoch: current epoch
 // active: true or false; whether the thread is in an epoch
 #define GET_EPOCH_STATUS(epoch, active)                                                            \
-    ((epoch) & ((active) ? 0xFFFFFFFFFFFFFFFF : 0x7FFFFFFFFFFFFFFF))
+    ((active) ? ((epoch) | 0x8000000000000000) : ((epoch) & 0x7FFFFFFFFFFFFFFF))
 
 thread_local int thread_epoch_index = 0;
 
@@ -52,7 +52,6 @@ void EpochBasedReclamation::destroy()
 void EpochBasedReclamation::init_thread_epoch()
 {
     thread_epoch_index = thread_epochs_count.fetch_add(1);
-    thread_epochs[thread_epoch_index].epoch_status.store(0);
     assert(thread_epoch_index < EBR_MAX_THREADS);
 }
 
@@ -84,7 +83,7 @@ void EpochBasedReclamation::retire(TSLinkedListNode *ptr)
 {
     assert(thread_epoch_index >= 0);
     ThreadEpoch &thread_epoch = thread_epochs[thread_epoch_index];
-    uint64_t cur_epoch = GET_EPOCH_STATUS(thread_epoch.epoch_status.load(), false);
+    uint64_t cur_epoch = GET_EPOCH_STATUS(global_epoch.load(), false);
     thread_epoch.retire_list.push_back({ptr, cur_epoch});
 }
 void EpochBasedReclamation::advance_epoch()
@@ -101,6 +100,7 @@ void EpochBasedReclamation::advance_epoch()
                 min_epoch = old_local_epoch;
         }
     }
+    assert(min_epoch > 0);
     gc_epoch.store(min_epoch - 1);
 }
 

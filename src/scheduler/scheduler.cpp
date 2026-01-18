@@ -11,6 +11,7 @@ namespace rockcoro {
 static void *event_loop(void *)
 {
     EpochBasedReclamation::inst.init_thread_epoch();
+    TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     // if true, then means that the main loop yielded from a coroutine,
     // so we will push the job without post_sem, and then poping the job without wait_sem,
     // which is equivalent to post_self.
@@ -35,6 +36,7 @@ Scheduler::Scheduler()
 
 void Scheduler::init()
 {
+    job_queue.init();
     pthread_spin_init(&spin_job_queue, 0);
     sem_init(&sem_job_queue, 0, 0);
     for (int i = 0; i < SCHEDULER_NUM_WORKERS; ++i) {

@@ -11,7 +11,9 @@
 #define EBR_MAX_THREADS 1024
 #define EBR_ADVANCE_EPOCH_INTERVAL_MS 20
 
-#define TS_LINKED_LIST_NODE_CACHE_COUNT 100
+#define TS_LINKED_LIST_NODE_CACHE_MAX_THREADS 1024
+#define TS_LINKED_LIST_NODE_CACHE_COUNT 128
+#define TS_LINKED_LIST_NODE_CACHE_BATCH_RELEASE_COUNT 64
 
 //==========Utility Functions==========
 #define ARR_LEN(arr) (sizeof(arr) / sizeof((arr)[0]))

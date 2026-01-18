@@ -28,7 +28,9 @@ static_assert(PRODUCER_COUNT + CONSUMER_COUNT < EBR_MAX_THREADS - SCHEDULER_NUM_
 TEST(TSLinkedListTest, PushPopTest)
 {
     EpochBasedReclamation::inst.init_thread_epoch();
+    TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     TSLinkedList queue;
+    queue.init();
 
     constexpr int TOTAL_ITEMS = PRODUCER_COUNT * ITEMS_PER_PRODUCER;
 
@@ -44,6 +46,7 @@ TEST(TSLinkedListTest, PushPopTest)
     // producer
     auto producer = [&]() {
         EpochBasedReclamation::inst.init_thread_epoch();
+        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
             int id = produced.fetch_add(1, std::memory_order_relaxed) + 1;
             queue.push_back(reinterpret_cast<void *>(static_cast<intptr_t>(id)));
@@ -53,6 +56,7 @@ TEST(TSLinkedListTest, PushPopTest)
     // consumer
     auto consumer = [&]() {
         EpochBasedReclamation::inst.init_thread_epoch();
+        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         int pop_count = 0;
         while (consumed.load(std::memory_order_acquire) < TOTAL_ITEMS) {
             void *ptr = queue.pop_front();
@@ -110,7 +114,9 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
     std::signal(SIGINT, sigint_handler);
 
     EpochBasedReclamation::inst.init_thread_epoch();
+    TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     TSLinkedList queue;
+    queue.init();
 
     std::atomic<uint64_t> produced{0};
     std::atomic<uint64_t> consumed{0};
@@ -121,6 +127,7 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
 
     auto producer = [&]() {
         EpochBasedReclamation::inst.init_thread_epoch();
+        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         while (running.load(std::memory_order_relaxed)) {
             uint64_t id = produced.fetch_add(1, std::memory_order_relaxed) + 1;
             queue.push_back(reinterpret_cast<void *>(id));
@@ -129,6 +136,7 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
 
     auto consumer = [&]() {
         EpochBasedReclamation::inst.init_thread_epoch();
+        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         while (running.load(std::memory_order_relaxed) ||
                consumed.load(std::memory_order_relaxed) <
                    produced.load(std::memory_order_relaxed)) {
@@ -143,10 +151,11 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
             ASSERT_GT(id, 0);
 
             uint64_t slot = id & (SEEN_TABLE_SIZE - 1);
-            uint64_t old = seen[slot].exchange(id, std::memory_order_relaxed);
-
+            uint64_t old = seen[slot].load(std::memory_order_relaxed);
             // 如果同一个 id 被 pop 两次
             ASSERT_NE(old, id) << "Duplicate pop detected for id=" << id;
+
+            seen[slot].store(id, std::memory_order_relaxed);
 
             consumed.fetch_add(1, std::memory_order_relaxed);
         }

@@ -1,9 +1,12 @@
 #include "memory/ts_linked_list.h"
+#include <cassert>
 #include <cstdlib>
 #include <thread>
 #include "memory/epoch_based_reclamation.h"
 
 namespace rockcoro {
+
+static thread_local int ts_node_cache_index = -1;
 
 TSLinkedListNode::TSLinkedListNode(void *value)
     : value(value)
@@ -13,13 +16,18 @@ TSLinkedListNode::TSLinkedListNode(void *value)
 
 TSLinkedList::TSLinkedList()
 {
-    TSLinkedListNode *dummy = TSLinkedListNodeAllocator::inst.get();
-    head.store(dummy);
-    tail.store(dummy);
 }
 TSLinkedList::~TSLinkedList()
 {
     destroy();
+}
+void TSLinkedList::init()
+{
+    if (head.load() != nullptr)
+        return; //already initialized
+    TSLinkedListNode *dummy = TSLinkedListNodeAllocator::inst.get();
+    head.store(dummy);
+    tail.store(dummy);
 }
 void TSLinkedList::destroy()
 {
@@ -37,12 +45,17 @@ void TSLinkedList::destroy()
 }
 void *TSLinkedList::pop_front()
 {
+#ifndef NDEBUG
+    assert(head.load() != nullptr); // not initialized
+#else
+    init();
+#endif
     while (true) {
         EpochBasedReclamation::inst.enter_epoch();
         TSLinkedListNode *first = head.load();
         TSLinkedListNode *last = tail.load();
-        //assert(!first->released.load());
-        //assert(!last->released.load());
+        assert(!first->released.load());
+        assert(!last->released.load());
         TSLinkedListNode *next = first->next.load();
         //assert(next == nullptr || !next->released.load());
         if (first == last) {
@@ -66,6 +79,11 @@ void *TSLinkedList::pop_front()
 }
 void TSLinkedList::push_back(void *value)
 {
+#ifndef NDEBUG
+    assert(head.load() != nullptr); // not initialized
+#else
+    init();
+#endif
     TSLinkedListNode *node = TSLinkedListNodeAllocator::inst.get();
     node->value = value;
     node->next.store(nullptr);
@@ -94,48 +112,91 @@ void TSLinkedListNodeAllocator::init()
 std::atomic<uint64_t> new_count{0};
 void TSLinkedListNodeAllocator::destroy()
 {
-    TSLinkedListNode *cur = head.load();
-    head.store(nullptr);
-    uint64_t delete_count = 0;
-    for (; cur != nullptr;) {
-        TSLinkedListNode *next = cur->next.load();
-        delete cur;
-        cur = next;
-        ++delete_count;
+    for (int i = tl_node_cache_count.load() - 1; i >= 0; --i) {
+        tl_node_cache[i].destroy();
     }
-    logf("delete_count=%llu, new_count=%llu\n", delete_count, new_count.load());
+}
+
+void TSLinkedListNodeAllocator::init_thread_local_cache()
+{
+    if (ts_node_cache_index >= 0)
+        return; //already initialized
+    ts_node_cache_index = tl_node_cache_count.fetch_add(1);
+    assert(ts_node_cache_index < TS_LINKED_LIST_NODE_CACHE_MAX_THREADS);
 }
 
 TSLinkedListNode *TSLinkedListNodeAllocator::get()
 {
-    TSLinkedListNode *first = head.load();
-    do {
-        if (first == nullptr) {
-            TSLinkedListNode *ret = new TSLinkedListNode(nullptr);
-            new_count.fetch_add(1, std::memory_order_relaxed);
-            return ret;
-        }
-        //if (first == nullptr)
-        //return new TSLinkedListNode(nullptr);
-    } while (!head.compare_exchange_weak(first, first->next.load()));
-    first->next.store(nullptr);
-    first->released.store(false);
-    return first;
+#ifndef NDEBUG
+    assert(ts_node_cache_index >= 0); //thread local cache not initialized
+#else
+    if (ts_node_cache_index < 0) {
+        TSLinkedListNodeCache::inst.init_thread_local_cache();
+    }
+#endif
+    TSLinkedListNodeCache &cache = tl_node_cache[ts_node_cache_index];
+    TSLinkedListNode *node = cache.pop();
+    if (node == nullptr) {
+        node = new TSLinkedListNode(nullptr);
+        new_count.fetch_add(1);
+    }
+    node->released.store(false);
+    node->next.store(nullptr);
+    return node;
 }
 
 void TSLinkedListNodeAllocator::release(TSLinkedListNode *node)
 {
+    assert(ts_node_cache_index >= 0); //thread local cache not initialized
+    TSLinkedListNodeCache &cache = tl_node_cache[ts_node_cache_index];
     node->released.store(true);
-    TSLinkedListNode *first = head.load();
-    do {
-        node->next.store(first);
-        assert(node != first); //make sure not self-loop
-    } while (!head.compare_exchange_weak(first, node));
+    cache.push(node);
+    if (cache.count >= TS_LINKED_LIST_NODE_CACHE_COUNT) {
+        batch_release();
+    }
 }
 
-int TSLinkedListNodeAllocator::get_new_count()
+void TSLinkedListNodeAllocator::batch_release()
+{
+    assert(ts_node_cache_index >= 0); //thread local cache not initialized
+    TSLinkedListNodeCache &cache = tl_node_cache[ts_node_cache_index];
+    for (int i = 0; i < TS_LINKED_LIST_NODE_CACHE_BATCH_RELEASE_COUNT; ++i) {
+        TSLinkedListNode *node = cache.pop();
+        if (node == nullptr)
+            break;
+        delete node;
+    }
+}
+
+uint64_t TSLinkedListNodeAllocator::get_new_count()
 {
     return new_count.load();
 }
 
+void TSLinkedListNodeCache::destroy()
+{
+    while (head != nullptr) {
+        TSLinkedListNode *node = head;
+        head = head->next.load();
+        delete node;
+    }
+}
+
+void TSLinkedListNodeCache::push(TSLinkedListNode *node)
+{
+    node->next.store(head);
+    head = node;
+    count++;
+}
+
+TSLinkedListNode *TSLinkedListNodeCache::pop()
+{
+    if (head == nullptr) {
+        return nullptr;
+    }
+    TSLinkedListNode *ret = head;
+    head = head->next.load();
+    count--;
+    return ret;
+}
 } // namespace rockcoro
