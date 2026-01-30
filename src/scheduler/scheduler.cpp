@@ -10,7 +10,6 @@ namespace rockcoro {
 
 static void *event_loop(void *)
 {
-    TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     // if true, then means that the main loop yielded from a coroutine,
     // so we will push the job without post_sem, and then poping the job without wait_sem,
     // which is equivalent to post_self.

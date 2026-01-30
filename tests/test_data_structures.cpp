@@ -27,7 +27,6 @@ static_assert(PRODUCER_COUNT + CONSUMER_COUNT < EBR_MAX_THREADS - SCHEDULER_NUM_
 /*
 TEST(TSLinkedListTest, PushPopTest)
 {
-    TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     TSLinkedList queue;
     queue.init();
 
@@ -44,7 +43,6 @@ TEST(TSLinkedListTest, PushPopTest)
 
     // producer
     auto producer = [&]() {
-        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
             int id = produced.fetch_add(1, std::memory_order_relaxed) + 1;
             queue.push_back(reinterpret_cast<void *>(static_cast<intptr_t>(id)));
@@ -53,7 +51,6 @@ TEST(TSLinkedListTest, PushPopTest)
 
     // consumer
     auto consumer = [&]() {
-        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         int pop_count = 0;
         while (consumed.load(std::memory_order_acquire) < TOTAL_ITEMS) {
             void *ptr = queue.pop_front();
@@ -110,7 +107,6 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
 {
     std::signal(SIGINT, sigint_handler);
 
-    TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     TSLinkedList queue;
     queue.init();
 
@@ -122,7 +118,6 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
         v.store(0, std::memory_order_relaxed);
 
     auto producer = [&]() {
-        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         while (running.load(std::memory_order_relaxed)) {
             uint64_t id = produced.fetch_add(1, std::memory_order_relaxed) + 1;
             queue.push_back(reinterpret_cast<void *>(id));
@@ -130,7 +125,6 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
     };
 
     auto consumer = [&]() {
-        TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         while (running.load(std::memory_order_relaxed) ||
                consumed.load(std::memory_order_relaxed) <
                    produced.load(std::memory_order_relaxed)) {

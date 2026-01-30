@@ -17,7 +17,6 @@ Scheduler Scheduler::inst;
 void init()
 {
     TSLinkedListNodeAllocator::inst.init();
-    TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     EpochBasedReclamation::inst.init();
     TimerManager::inst.init();
     Scheduler::inst.init();

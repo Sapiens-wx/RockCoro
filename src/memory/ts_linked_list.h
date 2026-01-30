@@ -6,16 +6,17 @@ namespace rockcoro {
 
 //thread safe linked list node
 struct TSLinkedListNode {
-    std::atomic<TSLinkedListNode *> next;
-    void *value;
-    std::atomic<bool> released = false;
+    std::atomic<TSLinkedListNode *> next_;
+    void *value_;
+    //debug
+    std::atomic<bool> released_ = false;
 
     TSLinkedListNode(void *value);
 };
 
 struct TSLinkedListNodeCache {
-    TSLinkedListNode *head = nullptr;
-    int count = 0;
+    TSLinkedListNode *head_ = nullptr;
+    int count_ = 0;
 
     void destroy();
     void push(TSLinkedListNode *node);
@@ -25,28 +26,34 @@ struct TSLinkedListNodeCache {
 class TSLinkedListNodeAllocator {
 public:
     static TSLinkedListNodeAllocator inst;
-    TSLinkedListNodeCache tl_node_cache[TS_LINKED_LIST_NODE_CACHE_MAX_THREADS];
-    std::atomic<int> tl_node_cache_count{0};
 
+private:
+    TSLinkedListNodeCache tl_node_cache_[TS_LINKED_LIST_NODE_CACHE_MAX_THREADS];
+    std::atomic<int> tl_node_cache_count_{0};
+
+public:
     void init();
     void destroy();
     TSLinkedListNode *get();
     void release(TSLinkedListNode *node);
-    // any threads that use NodeAllocator must call this function first
-    void init_thread_local_cache();
     //debug functions
     uint64_t get_new_count();
 
 private:
+    // free unused cached node in a batch
     void batch_release();
+    // any threads that use NodeAllocator must call this function first (will be automatically called)
+    void init_thread_local_cache();
 };
 
 //thread safe linked list. can be used only by scheduler
 // threads that uses TSLinkedList must call EpochBaseReclamation::inst.init_thread_epoch (so EBR could help avoid ABA problem)
 struct TSLinkedList {
-    std::atomic<TSLinkedListNode *> head = nullptr;
-    std::atomic<TSLinkedListNode *> tail = nullptr;
+private:
+    std::atomic<TSLinkedListNode *> head_ = nullptr;
+    std::atomic<TSLinkedListNode *> tail_ = nullptr;
 
+public:
     TSLinkedList();
     ~TSLinkedList();
     void init();
