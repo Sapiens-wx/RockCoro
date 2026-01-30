@@ -9,7 +9,6 @@ struct TSLinkedListNode {
     std::atomic<TSLinkedListNode *> next;
     void *value;
     std::atomic<bool> released = false;
-    std::atomic<int> used_by_thread_epoch = -1;
 
     TSLinkedListNode(void *value);
 };

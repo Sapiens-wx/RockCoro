@@ -21,8 +21,6 @@ void init()
     EpochBasedReclamation::inst.init();
     TimerManager::inst.init();
     Scheduler::inst.init();
-
-    EpochBasedReclamation::inst.init_thread_epoch();
 }
 
 void destroy()

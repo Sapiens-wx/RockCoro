@@ -42,7 +42,6 @@ void logf(const char *fmt, ...)
         pthread_mutex_lock(&Logger::inst.mutex_log);
         fwrite(buffer, 1, n, Logger::inst.log_file);
         printf("%s", buffer);
-        fflush(Logger::inst.log_file);
         pthread_mutex_unlock(&Logger::inst.mutex_log);
     }
 }

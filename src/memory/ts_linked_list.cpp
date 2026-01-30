@@ -35,7 +35,6 @@ void TSLinkedList::destroy()
         EpochBasedReclamation::inst.enter_epoch();
         //use EBR to release the dummy node
         for (TSLinkedListNode *cur = head.load(); cur != nullptr; cur = cur->next.load()) {
-            cur->used_by_thread_epoch.store(-1);
             EpochBasedReclamation::inst.retire(cur);
         }
         head.store(nullptr);
@@ -68,7 +67,6 @@ void *TSLinkedList::pop_front()
             void *value = next->value;
             if (head.compare_exchange_strong(first, next)) {
                 assert(first != next); //make sure not self-loop
-                first->used_by_thread_epoch.store(-1);
                 EpochBasedReclamation::inst.retire(first);
                 EpochBasedReclamation::inst.exit_epoch();
                 return value;
@@ -87,7 +85,6 @@ void TSLinkedList::push_back(void *value)
     TSLinkedListNode *node = TSLinkedListNodeAllocator::inst.get();
     node->value = value;
     node->next.store(nullptr);
-    node->used_by_thread_epoch.store(EpochBasedReclamation::inst.global_epoch.load());
     while (true) {
         EpochBasedReclamation::inst.enter_epoch();
         TSLinkedListNode *last = tail.load();

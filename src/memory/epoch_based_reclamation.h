@@ -9,37 +9,44 @@ namespace rockcoro {
 struct TSLinkedListNode;
 
 struct RetireRecord {
-    TSLinkedListNode *ptr;
-    uint64_t retire_epoch;
+    TSLinkedListNode *ptr_;
+    uint64_t retire_epoch_;
 };
 
 struct ThreadEpoch {
     // stores both active/inactive status and epoch index
     // | 1 bit: active/inactive | 63 bits: epoch index |
-    std::atomic<uint64_t> epoch_status = {0};
-    Deque<RetireRecord> retire_list;
+    std::atomic<uint64_t> epoch_status_ = {0};
+    Deque<RetireRecord> retire_list_;
 };
 
 // epoch based reclamation
 struct EpochBasedReclamation {
+public:
     static EpochBasedReclamation inst;
-    std::atomic<uint64_t> global_epoch = 1;
-    std::atomic<uint64_t> gc_epoch = 0;
-    ThreadEpoch thread_epochs[EBR_MAX_THREADS];
-    std::atomic<int> thread_epochs_count = 0;
-    std::atomic<bool> is_running = true;
-    pthread_t epoch_maintainer_thread;
 
+private:
+    std::atomic<uint64_t> global_epoch_ = 1;
+    std::atomic<uint64_t> gc_epoch_ = 0;
+    ThreadEpoch thread_epochs_[EBR_MAX_THREADS];
+    std::atomic<int> thread_epochs_count_ = 0;
+    std::atomic<bool> is_running_ = true;
+    pthread_t epoch_maintainer_thread_;
+
+public:
     void init();
     void destroy();
-    // only those threads that call this function are able to use EpochBasedReclamation
-    // (they will be assigned with a ThreadEpoch instance from [thread_epochs])
-    void init_thread_epoch();
     void enter_epoch();
     void exit_epoch();
     void retire(TSLinkedListNode *ptr);
     int get_thread_epoch_index();
+
+private:
+    // only those threads that call this function are able to use EpochBasedReclamation
+    // (they will be assigned with a ThreadEpoch instance from [thread_epochs])
+    void init_thread_epoch();
     void advance_epoch();
+    static void *epoch_maintainer(void *);
 };
 
 } // namespace rockcoro

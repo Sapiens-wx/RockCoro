@@ -27,7 +27,6 @@ static_assert(PRODUCER_COUNT + CONSUMER_COUNT < EBR_MAX_THREADS - SCHEDULER_NUM_
 /*
 TEST(TSLinkedListTest, PushPopTest)
 {
-    EpochBasedReclamation::inst.init_thread_epoch();
     TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     TSLinkedList queue;
     queue.init();
@@ -45,7 +44,6 @@ TEST(TSLinkedListTest, PushPopTest)
 
     // producer
     auto producer = [&]() {
-        EpochBasedReclamation::inst.init_thread_epoch();
         TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
             int id = produced.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -55,7 +53,6 @@ TEST(TSLinkedListTest, PushPopTest)
 
     // consumer
     auto consumer = [&]() {
-        EpochBasedReclamation::inst.init_thread_epoch();
         TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         int pop_count = 0;
         while (consumed.load(std::memory_order_acquire) < TOTAL_ITEMS) {
@@ -113,7 +110,6 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
 {
     std::signal(SIGINT, sigint_handler);
 
-    EpochBasedReclamation::inst.init_thread_epoch();
     TSLinkedListNodeAllocator::inst.init_thread_local_cache();
     TSLinkedList queue;
     queue.init();
@@ -126,7 +122,6 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
         v.store(0, std::memory_order_relaxed);
 
     auto producer = [&]() {
-        EpochBasedReclamation::inst.init_thread_epoch();
         TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         while (running.load(std::memory_order_relaxed)) {
             uint64_t id = produced.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -135,7 +130,6 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
     };
 
     auto consumer = [&]() {
-        EpochBasedReclamation::inst.init_thread_epoch();
         TSLinkedListNodeAllocator::inst.init_thread_local_cache();
         while (running.load(std::memory_order_relaxed) ||
                consumed.load(std::memory_order_relaxed) <
