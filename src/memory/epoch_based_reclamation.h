@@ -1,10 +1,14 @@
 #pragma once
 #include <atomic>
 #include <pthread.h>
-#include "basic_struct/data_structures.h"
+#include "basic_struct/deque.h"
 #include "config.h"
 
 namespace rockcoro {
+
+// max number of threads that use Epoch Based Reclamation
+constexpr int EBR_MAX_THREADS = 1024;
+constexpr size_t EBR_ADVANCE_EPOCH_INTERVAL_MS = 20;
 
 struct TSLinkedListNode;
 

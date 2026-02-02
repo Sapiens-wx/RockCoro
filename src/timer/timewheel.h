@@ -4,6 +4,10 @@
 
 namespace rockcoro {
 
+constexpr int TIMEWHEEL_INTERVAL_MS = 1;
+constexpr int TIMEWHEEL_NUM_SLOTS_PER_WHEEL = 60;
+constexpr int TIMEWHEEL_NUM_WHEELS = 3;
+
 struct Coroutine;
 
 struct TimeWheelLinkedListNode {

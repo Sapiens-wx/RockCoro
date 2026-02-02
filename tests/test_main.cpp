@@ -5,7 +5,6 @@
 #include <thread>
 #include <unordered_set>
 #include <vector>
-#include "basic_struct/data_structures.h"
 #include "bootstrap.h"
 #include "log.h"
 

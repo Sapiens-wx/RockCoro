@@ -4,6 +4,8 @@
 
 namespace rockcoro {
 
+constexpr size_t STACK_SIZE = 1024 * 1024;
+
 Stack::Stack()
 {
     size_t page_size = sysconf(_SC_PAGESIZE);

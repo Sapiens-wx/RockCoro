@@ -6,9 +6,11 @@
 
 namespace rockcoro {
 
-struct Coroutine;
+// number of workers to execute the coroutines
+constexpr int SCHEDULER_NUM_WORKERS = 10;
 
-typedef void (*CoroutineFunc)(void *);
+struct Coroutine;
+using CoroutineFunc = void (*)(void *);
 
 struct Scheduler {
     static Scheduler inst;

@@ -1,10 +1,13 @@
 #pragma once
 #include <atomic>
-#include "basic_struct/data_structures.h"
 #include "config.h"
-
+#include "memory/tagged_ptr.h"
 
 namespace rockcoro {
+
+constexpr int TS_LINKED_LIST_NODE_CACHE_MAX_THREADS = 1024;
+constexpr int TS_LINKED_LIST_NODE_CACHE_COUNT = 128;
+constexpr int TS_LINKED_LIST_NODE_CACHE_BATCH_RELEASE_COUNT = 64;
 
 struct TSLinkedListNode;
 using TSLinkedListNodePtr = TaggedPtr<TSLinkedListNode>;
