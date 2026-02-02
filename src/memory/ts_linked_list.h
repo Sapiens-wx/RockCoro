@@ -1,8 +1,13 @@
 #pragma once
 #include <atomic>
+#include "basic_struct/data_structures.h"
 #include "config.h"
 
+
 namespace rockcoro {
+
+struct TSLinkedListNode;
+using TSLinkedListNodePtr = TaggedPtr<TSLinkedListNode>;
 
 //thread safe linked list node
 struct TSLinkedListNode {

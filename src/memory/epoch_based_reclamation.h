@@ -17,7 +17,7 @@ struct ThreadEpoch {
     // stores both active/inactive status and epoch index
     // | 1 bit: active/inactive | 63 bits: epoch index |
     std::atomic<uint64_t> epoch_status_ = {0};
-    Deque<RetireRecord> retire_list_;
+    Deque<RetireRecord, 8192> retire_list_;
 };
 
 // epoch based reclamation

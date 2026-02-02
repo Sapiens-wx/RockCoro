@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "config.h"
 #include "log.h"
 
 namespace rockcoro {
@@ -115,6 +116,7 @@ private:
         if (new_cap < min_cap)
             new_cap = min_cap;
 
+        logf("grow capacity to %llu\n", new_cap);
         T *new_data = allocate(new_cap);
 
         // 按逻辑顺序搬迁
@@ -769,6 +771,33 @@ private:
     {
         for (size_t i = 0; i < size_; ++i)
             data_[i].~T();
+    }
+};
+
+template <typename T> struct TaggedPtr {
+    T *ptr_ = nullptr;
+    TaggedPtr()
+    {
+    }
+    TaggedPtr(T *ptr)
+        : ptr_(ptr)
+    {
+    }
+    TaggedPtr(T *ptr, int tag)
+    {
+        ptr_ = (T *)(((uint64_t)ptr) | (tag & TAGGED_PTR_MASK));
+    }
+    T *get_ptr()
+    {
+        return ((uint64_t)ptr_) & ~TAGGED_PTR_MASK;
+    }
+    int get_tag()
+    {
+        return ((uint64_t)ptr_) & TAGGED_PTR_MASK;
+    }
+    T *operator->()
+    {
+        return get_ptr();
     }
 };
 

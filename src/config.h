@@ -15,5 +15,8 @@
 #define TS_LINKED_LIST_NODE_CACHE_COUNT 128
 #define TS_LINKED_LIST_NODE_CACHE_BATCH_RELEASE_COUNT 64
 
+// mask for tagged pointer
+#define TAGGED_PTR_MASK 0b111llu
+
 //==========Utility Functions==========
 #define ARR_LEN(arr) (sizeof(arr) / sizeof((arr)[0]))
