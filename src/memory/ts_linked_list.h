@@ -14,7 +14,7 @@ using TSLinkedListNodePtr = TaggedPtr<TSLinkedListNode>;
 
 //thread safe linked list node
 struct TSLinkedListNode {
-    std::atomic<TSLinkedListNode *> next_;
+    std::atomic<TSLinkedListNodePtr> next_;
     void *value_;
     //debug
     std::atomic<bool> released_ = false;
@@ -23,12 +23,12 @@ struct TSLinkedListNode {
 };
 
 struct TSLinkedListNodeCache {
-    TSLinkedListNode *head_ = nullptr;
+    TSLinkedListNodePtr head_ = {nullptr};
     int count_ = 0;
 
     void destroy();
-    void push(TSLinkedListNode *node);
-    TSLinkedListNode *pop();
+    void push(TSLinkedListNodePtr node);
+    TSLinkedListNodePtr pop();
 };
 
 class TSLinkedListNodeAllocator {
@@ -42,8 +42,8 @@ private:
 public:
     void init();
     void destroy();
-    TSLinkedListNode *get();
-    void release(TSLinkedListNode *node);
+    TSLinkedListNodePtr get();
+    void release(TSLinkedListNodePtr node);
     //debug functions
     uint64_t get_new_count();
 
@@ -58,8 +58,8 @@ private:
 // threads that uses TSLinkedList must call EpochBaseReclamation::inst.init_thread_epoch (so EBR could help avoid ABA problem)
 struct TSLinkedList {
 private:
-    std::atomic<TSLinkedListNode *> head_ = nullptr;
-    std::atomic<TSLinkedListNode *> tail_ = nullptr;
+    std::atomic<TSLinkedListNodePtr> head_ = {{nullptr}};
+    std::atomic<TSLinkedListNodePtr> tail_ = {{nullptr}};
 
 public:
     TSLinkedList();

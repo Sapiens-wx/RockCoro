@@ -97,7 +97,7 @@ void EpochBasedReclamation::exit_epoch()
         retire_list.pop_front();
     }
 }
-void EpochBasedReclamation::retire(TSLinkedListNode *ptr)
+void EpochBasedReclamation::retire(TSLinkedListNodePtr ptr)
 {
     assert(thread_epoch_index >= 0);
     ThreadEpoch &thread_epoch = thread_epochs_[thread_epoch_index];

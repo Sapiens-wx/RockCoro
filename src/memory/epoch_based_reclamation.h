@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include "basic_struct/deque.h"
 #include "config.h"
+#include "memory/ts_linked_list.h"
 
 namespace rockcoro {
 
@@ -10,10 +11,8 @@ namespace rockcoro {
 constexpr int EBR_MAX_THREADS = 1024;
 constexpr size_t EBR_ADVANCE_EPOCH_INTERVAL_MS = 20;
 
-struct TSLinkedListNode;
-
 struct RetireRecord {
-    TSLinkedListNode *ptr_;
+    TSLinkedListNodePtr ptr_;
     uint64_t retire_epoch_;
 };
 
@@ -42,7 +41,7 @@ public:
     void destroy();
     void enter_epoch();
     void exit_epoch();
-    void retire(TSLinkedListNode *ptr);
+    void retire(TSLinkedListNodePtr ptr);
     int get_thread_epoch_index();
 
 private:

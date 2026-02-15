@@ -104,7 +104,6 @@ private:
         if (new_cap < min_cap)
             new_cap = min_cap;
 
-        logf("grow capacity to %llu\n", new_cap);
         T *new_data = allocate(new_cap);
 
         // 按逻辑顺序搬迁
