@@ -14,8 +14,8 @@ typedef void (*CoroutineFunc)(void *);
 struct CoroutineContext {
     // registers.
     // return address is stored in *rsp
-    void *r12 = nullptr, *r13 = nullptr, *r14 = nullptr, *r15 = nullptr, *rbp = nullptr,
-         *rsp = nullptr, *rbx = nullptr;
+    void *r12_ = nullptr, *r13_ = nullptr, *r14_ = nullptr, *r15_ = nullptr, *rbp_ = nullptr,
+         *rsp_ = nullptr, *rbx_ = nullptr;
 
     // called when the coroutine is swapped for the first time
     void init(Coroutine &coroutine);

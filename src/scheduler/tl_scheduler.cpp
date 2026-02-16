@@ -9,38 +9,39 @@ thread_local TLScheduler TLScheduler::inst;
 
 TLScheduler::TLScheduler()
 {
-    main_coroutine.started = true;
-    cur_coroutine = &main_coroutine;
+    main_coroutine_.started_ = true;
+    cur_coroutine_ = &main_coroutine_;
 }
 
 TLScheduler::~TLScheduler()
 {
-    if (pending_destroy) {
-        delete pending_destroy;
+    if (pending_destroy_) {
+        delete pending_destroy_;
     }
 }
 
 void TLScheduler::flush_pending_push()
 {
-    if (pending_push) {
-        Scheduler::inst.job_push(pending_push, false);
-        pending_push = nullptr;
+    if (pending_push_) {
+        Scheduler::inst.job_push(pending_push_, false);
+        pending_push_ = nullptr;
     }
 }
 
 void TLScheduler::flush_pending_destroy()
 {
-    if (pending_destroy) {
-        delete pending_destroy;
-        pending_destroy = nullptr;
+    if (pending_destroy_) {
+        delete pending_destroy_;
+        pending_destroy_ = nullptr;
     }
 }
 
 void TLScheduler::flush_pending_add_event()
 {
-    if (pending_add_event) {
-        TimerManager::inst.add_event(pending_add_event, pending_add_event->timewheel_node.delayMS);
-        pending_add_event = nullptr;
+    if (pending_add_event_) {
+        TimerManager::inst.add_event(pending_add_event_,
+                                     pending_add_event_->timewheel_node_.delayMS);
+        pending_add_event_ = nullptr;
     }
 }
 

@@ -31,10 +31,10 @@ TimeWheelLinkedListNode *TimeWheelLinkedList::pop_front()
 void TimeWheelLinkedList::push_back(Coroutine *coroutine)
 {
     if (head == nullptr) {
-        head = &coroutine->timewheel_node;
+        head = &coroutine->timewheel_node_;
         tail = head;
     } else {
-        tail->next = &coroutine->timewheel_node;
+        tail->next = &coroutine->timewheel_node_;
         tail = tail->next;
     }
     tail->next = nullptr;
@@ -42,7 +42,7 @@ void TimeWheelLinkedList::push_back(Coroutine *coroutine)
 
 void TimeWheel::add_event(Coroutine *coroutine)
 {
-    int delayMS = coroutine->timewheel_node.delayMS;
+    int delayMS = coroutine->timewheel_node_.delayMS;
     if (delayMS >= intervalMS * TIMEWHEEL_NUM_SLOTS_PER_WHEEL) {
         throw "cannot add event with such long interval";
     }
@@ -106,7 +106,7 @@ void *TimerManager::event_loop(void *)
     struct timespec next, cur_time;
     clock_gettime(CLOCK_MONOTONIC, &next);
 
-    while (Scheduler::inst.running) {
+    while (Scheduler::inst.running_) {
         // add pending events
         while (TimeWheelLinkedListNode *pending_event = TimerManager::inst.pop_pending_event()) {
             TimerManager::inst.internal_add_event(pending_event->coroutine);
@@ -134,7 +134,7 @@ void *TimerManager::event_loop(void *)
 
 void TimerManager::add_event(Coroutine *coroutine, int delayMS)
 {
-    coroutine->timewheel_node.delayMS = delayMS;
+    coroutine->timewheel_node_.delayMS = delayMS;
     push_pending_event(coroutine);
 }
 
@@ -142,7 +142,7 @@ void TimerManager::internal_add_event(Coroutine *coroutine)
 {
     int timewheel_index = 0;
     // calculates which timewheel to add the coroutine
-    int delayMS = coroutine->timewheel_node.delayMS / TIMEWHEEL_INTERVAL_MS;
+    int delayMS = coroutine->timewheel_node_.delayMS / TIMEWHEEL_INTERVAL_MS;
     for (; timewheel_index < TIMEWHEEL_NUM_WHEELS;) {
         delayMS /= TIMEWHEEL_NUM_SLOTS_PER_WHEEL;
         if (delayMS > 0)

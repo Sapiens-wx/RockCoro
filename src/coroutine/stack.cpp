@@ -22,15 +22,15 @@ Stack::Stack()
     //this prevents the stack from overflow
     mprotect(base, page_size, PROT_NONE);
 
-    stack_mem = ((char *)base) + page_size; // actual start of usable memory
-    size = stack_size;
+    stack_mem_ = ((char *)base) + page_size; // actual start of usable memory
+    size_ = stack_size;
 }
 
 Stack::~Stack()
 {
     size_t page_size = sysconf(_SC_PAGESIZE);
     // memory: | Guarded Page | Stack Mem ---- |
-    munmap(stack_mem - page_size, page_size + size);
+    munmap(stack_mem_ - page_size, page_size + size_);
 }
 
 } // namespace rockcoro

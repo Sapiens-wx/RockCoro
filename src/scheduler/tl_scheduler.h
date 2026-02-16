@@ -6,15 +6,15 @@ namespace rockcoro {
 struct TLScheduler {
     static thread_local TLScheduler inst;
     // current coroutine this thread is running on
-    Coroutine *cur_coroutine = nullptr;
+    Coroutine *cur_coroutine_ = nullptr;
     // the event loop.
-    Coroutine main_coroutine = {nullptr, nullptr};
+    Coroutine main_coroutine_ = {nullptr, nullptr};
     // the coroutine that called yield. A coroutine has to be pushed to job_queue after it returns to the main coroutine.
-    Coroutine *pending_push = nullptr;
+    Coroutine *pending_push_ = nullptr;
     // the coroutine that has terminated. Destroy the coroutine instance after the coroutine returns.
-    Coroutine *pending_destroy = nullptr;
+    Coroutine *pending_destroy_ = nullptr;
     // if Scheduler::coroutine_sleep is called, call TimerManager::add_event after the coroutine yields
-    Coroutine *pending_add_event = nullptr;
+    Coroutine *pending_add_event_ = nullptr;
 
     TLScheduler();
     ~TLScheduler();

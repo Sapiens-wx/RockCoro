@@ -13,18 +13,24 @@ struct Coroutine;
 using CoroutineFunc = void (*)(void *);
 
 struct Scheduler {
+public:
     static Scheduler inst;
+
+private:
     /// @brief the job queue
-    TSLinkedList job_queue;
-    pthread_spinlock_t spin_job_queue;
-    sem_t sem_job_queue;
+    TSLinkedList job_queue_;
+    pthread_spinlock_t spin_job_queue_;
+    sem_t sem_job_queue_;
     // workers
-    pthread_t workers[SCHEDULER_NUM_WORKERS];
-    pthread_t timewheel_worker;
+    pthread_t workers_[SCHEDULER_NUM_WORKERS];
+    pthread_t timewheel_worker_;
+
+public:
     // if Scheduler::destroy() is called, then running is set to false.
     // otherwise running is true.
-    bool running = true;
+    bool running_ = true;
 
+public:
     Scheduler();
     ~Scheduler();
     void init();
@@ -45,6 +51,9 @@ struct Scheduler {
     void coroutine_exit_swap(Coroutine *coroutine);
     // yields the coroutine and adds this coroutine to job_queue after [delayMS] ms
     void coroutine_sleep(int delayMS);
+
+private:
+    static void *event_loop(void *);
 };
 
 } // namespace rockcoro
