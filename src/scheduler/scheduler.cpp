@@ -73,7 +73,7 @@ Coroutine *Scheduler::job_pop(bool use_sem)
 {
     if (use_sem)
         sem_wait(&sem_job_queue_);
-    Coroutine *value = (Coroutine *)job_queue_.pop_front();
+    Coroutine *value = job_queue_.pop_front();
     return value;
 }
 void Scheduler::coroutine_create(CoroutineFunc fn, void *args)

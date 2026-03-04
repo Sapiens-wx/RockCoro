@@ -18,7 +18,7 @@ public:
 
 private:
     /// @brief the job queue
-    TSLinkedList job_queue_;
+    TSLinkedList<Coroutine> job_queue_;
     pthread_spinlock_t spin_job_queue_;
     sem_t sem_job_queue_;
     // workers

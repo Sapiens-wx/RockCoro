@@ -1,10 +1,12 @@
+#pragma once
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 namespace rockcoro {
 
-constexpr uint64_t TAGGED_PTR_MASK = 0b111;
+constexpr uint64_t TAGGED_PTR_MASK_BIT = 48;
+constexpr uint64_t TAGGED_PTR_MASK = 0xffffull << TAGGED_PTR_MASK_BIT;
 
 template <typename T> struct TaggedPtr {
     T *ptr_ = nullptr;
@@ -17,7 +19,7 @@ template <typename T> struct TaggedPtr {
     }
     TaggedPtr(T *ptr, int tag)
     {
-        ptr_ = (T *)(((uint64_t)ptr) | (tag & TAGGED_PTR_MASK));
+        ptr_ = (T *)(((uint64_t)ptr) | (((uint64_t)tag << TAGGED_PTR_MASK_BIT) & TAGGED_PTR_MASK));
     }
     T *get_ptr() const
     {
@@ -25,12 +27,13 @@ template <typename T> struct TaggedPtr {
     }
     int get_tag() const
     {
-        return ((uint64_t)ptr_) & TAGGED_PTR_MASK;
+        return (((uint64_t)ptr_) & TAGGED_PTR_MASK) >> TAGGED_PTR_MASK_BIT;
     }
     void increment_tag()
     {
         int tag = get_tag() + 1;
-        ptr_ = (T *)(((uint64_t)ptr_ & ~TAGGED_PTR_MASK) | (tag & TAGGED_PTR_MASK));
+        ptr_ = (T *)(((uint64_t)ptr_ & ~TAGGED_PTR_MASK) |
+                     (((uint64_t)tag << TAGGED_PTR_MASK_BIT) & TAGGED_PTR_MASK));
     }
     T *operator->()
     {

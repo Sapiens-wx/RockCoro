@@ -102,11 +102,54 @@ static void sigint_handler(int)
     running.store(false, std::memory_order_relaxed);
 }
 
+/*
+TEST(TaggedPointerTest, CorrectTag)
+{
+    struct Dummy {
+        int value;
+    };
+    Dummy d{42};
+
+    // 1️⃣ 默认构造
+    TaggedPtr<Dummy> tp_default;
+    EXPECT_EQ(tp_default.get_ptr(), nullptr);
+    EXPECT_EQ(tp_default.get_tag(), 0);
+
+    // 2️⃣ ptr 构造
+    TaggedPtr<Dummy> tp1(&d);
+    EXPECT_EQ(tp1.get_ptr(), &d);
+    EXPECT_EQ(tp1.get_tag(), 0);
+
+    // 3️⃣ ptr + tag 构造
+    TaggedPtr<Dummy> tp2(&d, 5);
+    EXPECT_EQ(tp2.get_ptr(), &d);
+    EXPECT_EQ(tp2.get_tag(), 5);
+
+    // 4️⃣ operator->
+    EXPECT_EQ(tp2->value, 42);
+
+    // 5️⃣ operator*
+    EXPECT_EQ((*tp2).value, 42);
+
+    // 6️⃣ increment_tag
+    tp2.increment_tag();
+    EXPECT_EQ(tp2.get_tag(), 6);
+    EXPECT_EQ(tp2.get_ptr(), &d);
+
+    // 7️⃣ 多次递增
+    for (int i = 0; i < 10; ++i)
+        tp2.increment_tag();
+
+    EXPECT_EQ(tp2.get_tag(), 16);
+    EXPECT_EQ(tp2.get_ptr(), &d);
+}
+*/
+
 TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
 {
     std::signal(SIGINT, sigint_handler);
 
-    TSLinkedList queue;
+    TSLinkedList<Coroutine> queue;
     queue.init();
 
     std::atomic<uint64_t> produced{0};
@@ -119,7 +162,7 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
     auto producer = [&]() {
         while (running.load(std::memory_order_relaxed)) {
             uint64_t id = produced.fetch_add(1, std::memory_order_relaxed) + 1;
-            queue.push_back(reinterpret_cast<void *>(id));
+            queue.push_back(reinterpret_cast<Coroutine *>(id));
         }
     };
 
@@ -128,7 +171,7 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
                consumed.load(std::memory_order_relaxed) <
                    produced.load(std::memory_order_relaxed)) {
 
-            void *ptr = queue.pop_front();
+            Coroutine *ptr = queue.pop_front();
             if (!ptr) {
                 std::this_thread::yield();
                 continue;
