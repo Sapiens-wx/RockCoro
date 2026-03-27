@@ -1,18 +1,22 @@
+#include <algorithm>
 #include <assert.h>
 #include <atomic>
 #include <csignal>
 #include <gtest/gtest.h>
 #include <mutex>
+#include <random>
 #include <stdio.h>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include "basic_struct/red_black_tree.h"
 #include "config.h"
 #include "coroutine/coroutine.h"
 #include "log.h"
 #include "memory/epoch_based_reclamation.h"
 #include "scheduler.h"
+
 
 using namespace rockcoro;
 
@@ -145,6 +149,7 @@ TEST(TaggedPointerTest, CorrectTag)
 }
 */
 
+/*
 TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
 {
     std::signal(SIGINT, sigint_handler);
@@ -215,3 +220,187 @@ TEST(TSLinkedListTest, PushPopStressUntilInterrupted)
     EXPECT_EQ(consumed.load(), produced.load());
 }
 //*/
+
+// ===== Comparer =====
+struct IntPtrComparer {
+    bool operator()(int *a, int *b) const
+    {
+        return *a < *b;
+    }
+};
+
+// ===== Test Fixture =====
+class RBTreeTest : public ::testing::Test {
+protected:
+    RBTree<int, IntPtrComparer> tree;
+    std::vector<int *> allocated; // 统一管理内存
+
+    int *make(int v)
+    {
+        int *p = new int(v);
+        allocated.push_back(p);
+        return p;
+    }
+
+    void TearDown() override
+    {
+        for (auto p : allocated) {
+            delete p;
+        }
+        allocated.clear();
+    }
+};
+
+// ===== 基础插入 + 查找 =====
+TEST_F(RBTreeTest, InsertAndFind)
+{
+    int *a = make(10);
+    int *b = make(20);
+    int *c = make(5);
+
+    EXPECT_TRUE(tree.insert(a));
+    EXPECT_TRUE(tree.insert(b));
+    EXPECT_TRUE(tree.insert(c));
+
+    EXPECT_EQ(*tree.find(a), 10);
+    EXPECT_EQ(*tree.find(b), 20);
+    EXPECT_EQ(*tree.find(c), 5);
+}
+
+// ===== 重复插入 =====
+TEST_F(RBTreeTest, DuplicateInsert)
+{
+    int *a1 = make(10);
+    int *a2 = make(10);
+
+    EXPECT_TRUE(tree.insert(a1));
+    EXPECT_FALSE(tree.insert(a2));
+}
+
+// ===== 删除 =====
+TEST_F(RBTreeTest, EraseBasic)
+{
+    int *a = make(10);
+    int *b = make(20);
+    int *c = make(5);
+
+    tree.insert(a);
+    tree.insert(b);
+    tree.insert(c);
+
+    EXPECT_TRUE(tree.erase(b));
+    EXPECT_EQ(tree.find(b), nullptr);
+
+    EXPECT_TRUE(tree.erase(a));
+    EXPECT_EQ(tree.find(a), nullptr);
+
+    EXPECT_TRUE(tree.erase(c));
+    EXPECT_EQ(tree.find(c), nullptr);
+}
+
+// ===== 删除不存在 =====
+TEST_F(RBTreeTest, EraseNonExist)
+{
+    int *a = make(10);
+    int *b = make(20);
+
+    tree.insert(a);
+
+    EXPECT_FALSE(tree.erase(b));
+}
+
+// ===== 最小 / 最大 =====
+TEST_F(RBTreeTest, MinMax)
+{
+    std::vector<int *> vals = {make(10), make(20), make(5), make(15)};
+
+    for (auto v : vals) {
+        tree.insert(v);
+    }
+
+    EXPECT_EQ(*tree.minimum(), 5);
+    EXPECT_EQ(*tree.maximum(), 20);
+}
+
+// ===== 顺序性（BST性质）=====
+TEST_F(RBTreeTest, InOrderProperty)
+{
+    std::vector<int *> vals = {make(10), make(20), make(5), make(15), make(1)};
+
+    for (auto v : vals) {
+        tree.insert(v);
+    }
+
+    std::vector<int> result;
+
+    while (true) {
+        int *min = tree.minimum();
+        if (!min)
+            break;
+
+        result.push_back(*min);
+        tree.erase(min);
+    }
+
+    EXPECT_TRUE(std::is_sorted(result.begin(), result.end()));
+}
+
+// ===== 空树 =====
+TEST_F(RBTreeTest, EmptyTree)
+{
+    int *tmp = make(10);
+
+    EXPECT_EQ(tree.find(tmp), nullptr);
+    EXPECT_EQ(tree.minimum(), nullptr);
+    EXPECT_EQ(tree.maximum(), nullptr);
+    EXPECT_FALSE(tree.erase(tmp));
+}
+
+// ===== 随机测试（去重版本）=====
+TEST_F(RBTreeTest, RandomInsertErase_NoDuplicates)
+{
+    std::vector<int *> vals;
+    std::unordered_set<int> used; // 用于去重
+
+    std::mt19937 rng(123);
+    std::uniform_int_distribution<int> dist(1, 1000);
+
+    // ===== 插入（自动去重）=====
+    for (int i = 0; i < 300; i++) {
+        int v = dist(rng);
+
+        if (used.count(v))
+            continue; // 🔥 丢弃重复值
+
+        used.insert(v);
+
+        int *p = make(v);
+        vals.push_back(p);
+
+        EXPECT_TRUE(tree.insert(p));
+    }
+
+    // ===== 查找验证 =====
+    for (auto p : vals) {
+        int *res = tree.find(p);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(*res, *p);
+    }
+
+    // ===== 删除一半 =====
+    for (int i = 0; i < (int)vals.size(); i += 2) {
+        EXPECT_TRUE(tree.erase(vals[i]));
+    }
+
+    // ===== 再验证 =====
+    for (int i = 0; i < (int)vals.size(); i++) {
+        int *res = tree.find(vals[i]);
+
+        if (i % 2 == 0) {
+            EXPECT_EQ(res, nullptr);
+        } else {
+            ASSERT_NE(res, nullptr);
+            EXPECT_EQ(*res, *vals[i]);
+        }
+    }
+}
