@@ -386,6 +386,70 @@ public:
         }
         blocks_.shrink_to_fit();
     }
+
+    void resize(size_type n, const T &value = T())
+    {
+        if (n == total_size_)
+            return;
+
+        // shrink
+        if (n < total_size_) {
+            size_t new_block_count = (n + BlockSize - 1) / BlockSize;
+
+            // shrink last block first
+            if (!blocks_.empty()) {
+                size_t last_block_idx = n / BlockSize;
+                size_t last_block_size = n % BlockSize;
+
+                blocks_[last_block_idx].resize(last_block_size);
+            }
+
+            // remove extra blocks
+            if (new_block_count < blocks_.size()) {
+                blocks_.resize(new_block_count);
+            }
+
+            total_size_ = n;
+            return;
+        }
+
+        // grow
+        size_t old_size = total_size_;
+        size_t new_block_count = (n + BlockSize - 1) / BlockSize;
+
+        // ensure enough blocks
+        if (blocks_.size() < new_block_count) {
+            blocks_.resize(new_block_count);
+        }
+
+        // fill existing last block
+        size_t old_block = old_size / BlockSize;
+        size_t old_offset = old_size % BlockSize;
+
+        if (old_block < blocks_.size()) {
+            auto &b = blocks_[old_block];
+            size_t fill_in_block = std::min(BlockSize - old_offset, n - old_size);
+
+            b.resize(old_offset + fill_in_block, value);
+
+            old_size += fill_in_block;
+        }
+
+        // fill full blocks in bulk
+        while (old_size + BlockSize <= n) {
+            size_t bidx = old_size / BlockSize;
+            blocks_[bidx].resize(BlockSize, value);
+            old_size += BlockSize;
+        }
+
+        // final partial block
+        if (old_size < n) {
+            size_t bidx = old_size / BlockSize;
+            blocks_[bidx].resize(n % BlockSize, value);
+        }
+
+        total_size_ = n;
+    }
 };
 
 } // namespace rockcoro

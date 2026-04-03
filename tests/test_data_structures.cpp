@@ -896,3 +896,134 @@ TEST_F(PriorityQueueWithChunkedVectorTest, SwapOperation)
     EXPECT_EQ(pq1.top(), 109);
     EXPECT_EQ(pq2.top(), 9);
 }
+
+// ============================
+// 基础 correctness 测试
+// ============================
+
+TEST(ChunkedVectorResizeTest, GrowFromEmpty)
+{
+    ChunkedVector<int, 4> v;
+
+    v.resize(10, 7);
+
+    EXPECT_EQ(v.size(), 10);
+
+    for (size_t i = 0; i < v.size(); ++i) {
+        EXPECT_EQ(v[i], 7);
+    }
+
+    EXPECT_EQ(v.block_count(), 3); // 4 + 4 + 2
+}
+
+TEST(ChunkedVectorResizeTest, ShrinkToZero)
+{
+    ChunkedVector<int, 4> v;
+    v.resize(10, 3);
+
+    v.resize(0);
+
+    EXPECT_EQ(v.size(), 0);
+    EXPECT_TRUE(v.empty());
+    EXPECT_EQ(v.block_count(), 0);
+}
+
+TEST(ChunkedVectorResizeTest, ShrinkPartialBlock)
+{
+    ChunkedVector<int, 4> v;
+    v.resize(10);
+
+    v.resize(6);
+
+    EXPECT_EQ(v.size(), 6);
+
+    for (size_t i = 0; i < 6; ++i) {
+        EXPECT_NO_THROW(v[i]);
+    }
+
+    EXPECT_EQ(v.block_count(), 2); // still 2 blocks (4 + 2)
+    EXPECT_EQ(v.back(), int{});    // default value check only if T supports it
+}
+
+// ============================
+// grow + shrink mix
+// ============================
+
+TEST(ChunkedVectorResizeTest, GrowThenShrinkThenGrow)
+{
+    ChunkedVector<int, 4> v;
+
+    v.resize(8, 1);
+    EXPECT_EQ(v.size(), 8);
+
+    v.resize(3);
+    EXPECT_EQ(v.size(), 3);
+
+    v.resize(10, 5);
+    EXPECT_EQ(v.size(), 10);
+
+    for (size_t i = 3; i < 10; ++i) {
+        EXPECT_EQ(v[i], 5);
+    }
+}
+
+// ============================
+// block boundary correctness
+// ============================
+
+TEST(ChunkedVectorResizeTest, BlockBoundaryCorrectness)
+{
+    ChunkedVector<int, 4> v;
+
+    v.resize(4, 1);
+    v.resize(8, 2);
+
+    EXPECT_EQ(v.block_count(), 2);
+
+    for (size_t i = 0; i < 4; ++i) {
+        EXPECT_EQ(v[i], 1);
+    }
+
+    for (size_t i = 4; i < 8; ++i) {
+        EXPECT_EQ(v[i], 2);
+    }
+}
+
+// ============================
+// overwrite correctness
+// ============================
+
+TEST(ChunkedVectorResizeTest, OverwriteOnGrow)
+{
+    ChunkedVector<int, 4> v;
+
+    v.resize(6, 1);
+    v.resize(10, 2);
+
+    for (size_t i = 6; i < 10; ++i) {
+        EXPECT_EQ(v[i], 2);
+    }
+}
+
+// ============================
+// stability test (no crash / UB)
+// ============================
+
+TEST(ChunkedVectorResizeTest, LargeResizeStress)
+{
+    ChunkedVector<int, 64> v;
+
+    v.resize(10000, 42);
+    EXPECT_EQ(v.size(), 10000);
+
+    v.resize(5000);
+    EXPECT_EQ(v.size(), 5000);
+
+    v.resize(20000, 7);
+    EXPECT_EQ(v.size(), 20000);
+
+    EXPECT_EQ(v[0], 42);
+    EXPECT_EQ(v[4999], 42);
+    EXPECT_EQ(v[5000], 7);
+    EXPECT_EQ(v[19999], 7);
+}
