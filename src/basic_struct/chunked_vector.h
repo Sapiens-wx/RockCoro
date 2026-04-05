@@ -381,9 +381,6 @@ public:
 
     void shrink_to_fit()
     {
-        for (auto &b : blocks_) {
-            b.shrink_to_fit();
-        }
         blocks_.shrink_to_fit();
     }
 

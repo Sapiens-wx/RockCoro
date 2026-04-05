@@ -15,12 +15,15 @@
 #include <unordered_set>
 #include <vector>
 #include "basic_struct/chunked_vector.h"
+#include "basic_struct/min_heap.h"
 #include "basic_struct/red_black_tree.h"
 #include "config.h"
 #include "coroutine/coroutine.h"
 #include "log.h"
 #include "memory/epoch_based_reclamation.h"
 #include "scheduler.h"
+
+#define TEST_MINHEAP 1
 
 using namespace rockcoro;
 
@@ -412,6 +415,7 @@ TEST_F(RBTreeTest, RandomInsertErase_NoDuplicates)
 }
 */
 
+/*
 // =====Chunked Vector test=====
 
 // 假设 ChunkedVector 已经在头文件中定义
@@ -1027,3 +1031,124 @@ TEST(ChunkedVectorResizeTest, LargeResizeStress)
     EXPECT_EQ(v[5000], 7);
     EXPECT_EQ(v[19999], 7);
 }
+//*/
+#if TEST_MINHEAP
+// ========MinHeap test========
+// ===== 测试用 Node =====
+struct MinHeapNode {
+    int key;
+    size_t heap_index_; // intrusive heap requirement
+
+    explicit MinHeapNode(int k = 0)
+        : key(k)
+        , heap_index_(0)
+    {
+    }
+};
+
+// ===== Compare：最小堆 =====
+// key 小的优先级更高
+struct MinHeapNodeCompare {
+    bool operator()(const MinHeapNode *a, const MinHeapNode *b) const
+    {
+        return a->key < b->key;
+    }
+};
+
+// ===== 你的 MinHeap =====
+// #include "MinHeap.h"
+
+// ===================== Tests =====================
+
+TEST(MinHeapTest, BasicEmplaceAndTop)
+{
+    MinHeap<MinHeapNode, MinHeapNodeCompare> heap(10);
+
+    auto *a = heap.emplace(3);
+    auto *b = heap.emplace(1);
+    auto *c = heap.emplace(2);
+
+    EXPECT_EQ(heap.size(), 3);
+    EXPECT_EQ(heap.top()->key, 1);
+}
+
+TEST(MinHeapTest, PopOrderIsSorted)
+{
+    MinHeap<MinHeapNode, MinHeapNodeCompare> heap(10);
+
+    std::vector<int> vals = {5, 1, 9, 2, 7};
+
+    for (int v : vals) {
+        heap.emplace(v);
+    }
+
+    std::sort(vals.begin(), vals.end());
+
+    for (int expected : vals) {
+        ASSERT_FALSE(heap.empty());
+        EXPECT_EQ(heap.top()->key, expected);
+        heap.pop();
+    }
+
+    EXPECT_TRUE(heap.empty());
+}
+
+TEST(MinHeapTest, EmptyAndSize)
+{
+    MinHeap<MinHeapNode, MinHeapNodeCompare> heap(10);
+
+    EXPECT_TRUE(heap.empty());
+    EXPECT_EQ(heap.size(), 0);
+
+    heap.emplace(10);
+    heap.emplace(20);
+
+    EXPECT_FALSE(heap.empty());
+    EXPECT_EQ(heap.size(), 2);
+
+    heap.pop();
+    EXPECT_EQ(heap.size(), 1);
+}
+
+TEST(MinHeapTest, UpdateKeyDecreasePriority)
+{
+    MinHeap<MinHeapNode, MinHeapNodeCompare> heap(10);
+
+    auto *a = heap.emplace(10);
+    auto *b = heap.emplace(20);
+    auto *c = heap.emplace(30);
+
+    EXPECT_EQ(heap.top()->key, 10);
+
+    // 修改 b，让它变成最小
+    b->key = 1;
+    heap.update(b);
+
+    EXPECT_EQ(heap.top()->key, 1);
+}
+
+TEST(MinHeapTest, RandomizedStressTest)
+{
+    MinHeap<MinHeapNode, MinHeapNodeCompare> heap(1000);
+
+    std::vector<MinHeapNode *> nodes;
+    std::vector<int> values;
+
+    std::mt19937 rng(123);
+    std::uniform_int_distribution<int> dist(0, 10000);
+
+    for (int i = 0; i < 500; i++) {
+        int v = dist(rng);
+        values.push_back(v);
+        nodes.push_back(heap.emplace(v));
+    }
+
+    std::sort(values.begin(), values.end());
+
+    for (int expected : values) {
+        ASSERT_FALSE(heap.empty());
+        EXPECT_EQ(heap.top()->key, expected);
+        heap.pop();
+    }
+}
+#endif
