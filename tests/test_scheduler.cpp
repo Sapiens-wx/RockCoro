@@ -15,7 +15,7 @@ constexpr const int ITEMS_PER_PRODUCER = 100;
 
 struct SchedulerParams {
     int id;
-    MSQueue<int> &q;
+    TSLinkedList<int> &q;
 
     std::atomic<int> &push_count;
     std::atomic<int> &pop_count;
@@ -29,7 +29,7 @@ struct SchedulerParams {
     int *completed_producer, *completed_consumer;
 
     SchedulerParams(int id,
-                    MSQueue<int> &q,
+                    TSLinkedList<int> &q,
                     std::atomic<int> &push_count,
                     std::atomic<int> &pop_count,
                     std::mutex &result_mutex,
@@ -68,7 +68,7 @@ static void consumer(void *args)
     int val;
     while (param->pop_count.load() < NUM_PRODUCERS * ITEMS_PER_PRODUCER) {
         const int *ptr = nullptr;
-        ptr = param->q.pop();
+        ptr = param->q.pop_front();
 
         if (ptr) {
             val = *ptr;
@@ -77,6 +77,7 @@ static void consumer(void *args)
             param->pop_count++;
         } else {
         }
+        delete ptr;
         Scheduler::inst.coroutine_yield();
     }
     param->completed_consumer[param->id] = 1;
@@ -89,7 +90,7 @@ static void producer(void *args)
     SchedulerParams *param = (SchedulerParams *)args;
     for (int i = 0; i < ITEMS_PER_PRODUCER; ++i) {
         int val = param->id * ITEMS_PER_PRODUCER + i;
-        param->q.push(val);
+        param->q.push_back(new int(val));
         param->push_count++;
         Scheduler::inst.coroutine_yield();
     }
@@ -99,7 +100,7 @@ static void producer(void *args)
 
 TEST(SchedulerTest, CoroutineTest)
 {
-    MSQueue<int> q;
+    TSLinkedList<int> q;
 
     std::atomic<int> push_count{0};
     std::atomic<int> pop_count{0};

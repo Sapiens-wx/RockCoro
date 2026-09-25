@@ -15,7 +15,6 @@ using namespace rockcoro;
 TEST(NodeAllocatorTest, MemoryLeakTest)
 {
     const constexpr int NUM_BATCHES = 256, BATCH_SIZE = 1024;
-    EpochBasedReclamation::inst.init_thread_epoch();
     for (int i = 0; i < NUM_BATCHES; ++i) {
         EpochBasedReclamation::inst.enter_epoch();
         for (int j = 0; j < BATCH_SIZE; ++j) {

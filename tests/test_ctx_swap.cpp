@@ -26,7 +26,7 @@ TEST(ContextSwapTest, SingleFunctionTest)
     Coroutine mainCoro(nullptr, nullptr);
     CoroParams args;
     Coroutine coro(&coro1, &args);
-    coro.ctx.init(coro);
+    coro.ctx_.init(coro);
     args.self = &coro;
     args.originalCoro = &mainCoro;
     args.i = 1;
